@@ -47,11 +47,11 @@ public class AuthFilter implements GlobalFilter, Ordered {
         String token = authHeader.substring(7);
 
         try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(Keys.hmacShaKeyFor(jwtSecret.getBytes()))
+            Claims claims = Jwts.parser()
+                    .verifyWith(Keys.hmacShaKeyFor(jwtSecret.getBytes()))
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
 
             String userId = claims.getSubject();
             String role   = claims.get("role", String.class);

@@ -32,7 +32,6 @@ spring:
             - Path=/api/listings/**
           filters:
             - StripPrefix=0
-            - AuthFilter   # custom JWT filter (see filter package)
 
         # Offer Service
         - id: offer-service
@@ -41,7 +40,6 @@ spring:
             - Path=/api/offers/**
           filters:
             - StripPrefix=0
-            - AuthFilter   # custom JWT filter
 
 # ─── JWT shared secret (must match auth-service) ─────────────────────
 app:
