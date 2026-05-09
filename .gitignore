@@ -1,0 +1,7 @@
+# IDEs
+.idea/
+*.iml
+*.iws
+
+# macOS
+.DS_Store
