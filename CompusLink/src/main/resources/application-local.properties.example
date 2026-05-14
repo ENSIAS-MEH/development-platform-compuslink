@@ -1,2 +1,2 @@
-DB_PASSWORD=your_database_password
-JWT_SECRET=your_jwt_secret_min_32_chars
+spring.datasource.password=your_database_password
+jwt.secret=your_jwt_secret_min_32_chars

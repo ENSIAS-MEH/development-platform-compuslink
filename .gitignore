@@ -2,6 +2,6 @@
 .idea/
 *.iml
 *.iws
-
+*.vscode
 # macOS
 .DS_Store
