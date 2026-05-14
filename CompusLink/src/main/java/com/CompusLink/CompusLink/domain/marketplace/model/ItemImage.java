@@ -1,4 +1,4 @@
-package com.CompusLink.CompusLink.domain.marketplace;
+package com.CompusLink.CompusLink.domain.marketplace.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,4 +1,4 @@
-package com.CompusLink.CompusLink.domain.marketplace;
+package com.CompusLink.CompusLink.domain.marketplace.model;
 
 public enum ItemCondition {
     NEW,
