@@ -12,5 +12,6 @@ public interface ItemInterestRepository extends JpaRepository<ItemInterest, UUID
     Optional<ItemInterest> findByItemIdAndUserId(UUID itemId, UUID userId);
     boolean existsByItemIdAndUserId(UUID itemId, UUID userId);
     List<ItemInterest> findByItemId(UUID itemId);
+    List<ItemInterest> findByUserId(UUID userId);
     long countByItemId(UUID itemId);
 }
