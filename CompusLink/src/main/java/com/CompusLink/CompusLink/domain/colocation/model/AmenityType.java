@@ -1,4 +1,4 @@
-package com.CompusLink.CompusLink.domain.colocation;
+package com.CompusLink.CompusLink.domain.colocation.model;
 
 public enum AmenityType {
     WIFI,
