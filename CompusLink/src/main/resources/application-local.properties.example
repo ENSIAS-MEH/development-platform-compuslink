@@ -1,3 +1,7 @@
 spring.datasource.username=your_user
 spring.datasource.password=your_database_password
 jwt.secret=your_jwt_secret_min_32_chars
+
+# Optional — override only if needed (defaults shown)
+# app.upload.dir=uploads
+# app.base-url=http://localhost:8080
