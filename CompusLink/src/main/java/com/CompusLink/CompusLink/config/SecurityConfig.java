@@ -31,7 +31,7 @@ public class SecurityConfig {
         http.csrf(customizer -> customizer.disable() );
         http.authorizeHttpRequests(requests ->
                 requests
-                        .requestMatchers("/register", "/login", "/refresh-token", "/logout")
+                        .requestMatchers("/register", "/login", "/refresh-token", "/logout", "/uploads/**")
                         .permitAll()
                         .anyRequest().authenticated());
 

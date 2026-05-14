@@ -37,3 +37,4 @@ build/
 .env.*
 !.env.example
 src/main/resources/application-local.properties
+uploads/
