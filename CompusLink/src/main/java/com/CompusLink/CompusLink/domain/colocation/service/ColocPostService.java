@@ -139,20 +139,28 @@ public class ColocPostService {
 
     // --- Mappers Internes ---
     private ColocPostDTO toFullDTO(ColocPost post, long total, int pending) {
-        return ColocPostDTO.builder()
-                .id(post.getId())
-                .title(post.getTitle())
-                .city(post.getCity())
-                .spotsNeeded(post.getSpotsNeeded())
-                .spotsConfirmed(post.getSpotsConfirmed())
-                .status(post.getStatus())
-                .pendingInterests((long)pending)
-                .totalInterests(total)
-                .images(imageRepository.findByPostOrderByPriority(post).stream()
-                        .map(i -> new ColocImageDTO(i.getId(), i.getUrl(), i.getSortOrder(), i.getIsCover()))
-                        .toList())
-                .build();
-    }
+    return ColocPostDTO.builder()
+            .id(post.getId())
+            .posterId(post.getPosterId()) // Ajouté
+            .title(post.getTitle())
+            .description(post.getDescription()) // Ajouté
+            .city(post.getCity())
+            .address(post.getAddress()) // Ajouté
+            .startDate(post.getStartDate()) // Ajouté
+            .spotsNeeded(post.getSpotsNeeded())
+            .spotsConfirmed(post.getSpotsConfirmed())
+            .housingType(post.getHousingType()) // Ajouté
+            .rentPerPerson(post.getRentPerPerson()) // Ajouté
+            .furnished(post.getFurnished()) // Ajouté
+            .status(post.getStatus())
+            .pendingInterests((long)pending)
+            .totalInterests(total)
+            .images(imageRepository.findByPostOrderByPriority(post).stream()
+                    .map(i -> new ColocImageDTO(i.getId(), i.getUrl(), i.getSortOrder(), i.getIsCover()))
+                    .toList())
+            .createdAt(post.getCreatedAt()) // Ajouté si présent dans l'entité
+            .build();
+}
 
     private ColocPostDTO toSummaryDTO(ColocPost post) {
     // Récupération de l'URL de la photo de couverture
@@ -179,6 +187,7 @@ public class ColocPostService {
             .coverUrl(cover) // URL de la cover
             .amenities(amenities) // Liste des équipements
             .createdAt(post.getCreatedAt()) // Date de création pour le tri
+            .posterId(post.getPosterId())
             .build();
 }
 
