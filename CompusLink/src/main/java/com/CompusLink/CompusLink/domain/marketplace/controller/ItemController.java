@@ -34,7 +34,7 @@ import com.CompusLink.CompusLink.domain.user.model.UserPrincipal;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/marketplace")
+@RequestMapping("/api/marketplace")
 public class ItemController {
 
     @Autowired

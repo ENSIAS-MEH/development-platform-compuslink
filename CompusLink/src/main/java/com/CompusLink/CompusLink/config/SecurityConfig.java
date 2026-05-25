@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -22,22 +21,25 @@ public class SecurityConfig {
 
     @Autowired
     private UserDetailsService userDetailsService;
-    
+
     @Autowired
     private JwtFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain springFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(customizer -> customizer.disable() );
-        http.authorizeHttpRequests(requests ->
-                requests
-                        .requestMatchers("/register", "/login", "/refresh-token", "/logout", "/uploads/**")
-                        .permitAll()
-                        .anyRequest().authenticated());
+        http.csrf(csrf -> csrf.disable());
+        http.authorizeHttpRequests(requests -> requests
+                .requestMatchers(
+                        "/api/auth/register",
+                        "/api/auth/login",
+                        "/api/auth/refresh-token",
+                        "/api/auth/logout",
+                        "/uploads/**"
+                ).permitAll()
+                .anyRequest().authenticated());
 
-        http.httpBasic(Customizer.withDefaults());
-        http.sessionManagement(seasion ->
-                seasion.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http.sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -48,7 +50,7 @@ public class SecurityConfig {
         DaoAuthenticationProvider daoAuthenticationProvider =
                 new DaoAuthenticationProvider(userDetailsService);
         daoAuthenticationProvider.setPasswordEncoder(new BCryptPasswordEncoder(12));
-        return  daoAuthenticationProvider;
+        return daoAuthenticationProvider;
     }
 
     @Bean
