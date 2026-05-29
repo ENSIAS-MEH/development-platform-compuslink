@@ -1,4 +1,4 @@
-bothipackage com.CompusLink.CompusLink.domain.offer.controller;
+package com.CompusLink.CompusLink.domain.offer.controller;
 
 import com.CompusLink.CompusLink.domain.offer.dto.ApplicationResponse;
 import com.CompusLink.CompusLink.domain.offer.dto.ApplyRequest;
