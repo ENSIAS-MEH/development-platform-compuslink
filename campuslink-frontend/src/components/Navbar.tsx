@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const links = [
   { to: "/colocation", label: "Colocation" },
@@ -9,6 +10,8 @@ const links = [
 ];
 
 export default function Navbar() {
+  const { user, logout } = useAuth();
+
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-100 flex items-center justify-between px-8 lg:px-16 z-50">
       <NavLink to="/" className="text-primary font-bold text-xl font-[Geist]">
@@ -33,9 +36,23 @@ export default function Navbar() {
         ))}
       </nav>
 
-      <button className="p-2 rounded-full hover:bg-gray-100">
-        <span className="material-symbols-outlined text-gray-600">search</span>
-      </button>
+      <div className="flex items-center gap-3">
+        {user ? (
+          <>
+            <span className="text-sm text-gray-600 hidden lg:block">{user.email}</span>
+            <button
+              onClick={logout}
+              className="text-sm text-gray-500 hover:text-red-600 transition-colors"
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <Link to="/auth" className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+            Sign In
+          </Link>
+        )}
+      </div>
     </header>
   );
 }
