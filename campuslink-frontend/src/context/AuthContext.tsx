@@ -35,8 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("accessToken");
     if (token) {
       api.get("/me")
-        .then(({ data }) => setUser(data))
-        .catch(() => { localStorage.clear(); setUser(null); })
+        .then(({ data }) => {
+          console.log("/me response:", data);
+          setUser({ userId: data.userId, email: data.email, fullName: data.fullName, role: data.role });
+        })
+        .catch((err) => { console.error("/me failed:", err.response?.status, err.response?.data); localStorage.clear(); setUser(null); })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);

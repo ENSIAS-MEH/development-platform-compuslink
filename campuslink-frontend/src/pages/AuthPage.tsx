@@ -79,11 +79,26 @@ function SignInForm() {
     }
   };
 
+  const handleGoogle = () => {
+    window.location.href = "http://localhost:8080/oauth2/authorization/google";
+  };
+
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
       {error && (
         <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
       )}
+
+      <button type="button" onClick={handleGoogle} className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+        <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="" />
+        Continue with Google
+      </button>
+
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-gray-200" />
+        <span className="text-xs text-gray-400 tracking-widest">OR EMAIL</span>
+        <div className="flex-1 h-px bg-gray-200" />
+      </div>
 
       <div>
         <label className="text-sm font-medium">Student Email</label>
