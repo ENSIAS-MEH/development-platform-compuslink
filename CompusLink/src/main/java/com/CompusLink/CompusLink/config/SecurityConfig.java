@@ -58,7 +58,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**", "/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/api/marketplace/items", "/api/marketplace/items/**").permitAll()
-                .requestMatchers("/api/colocations/**", "/api/offers/**").permitAll()
+                .requestMatchers("/api/colocations/**", "/api/offers/**", "/api/events/**").permitAll()
                 .anyRequest().authenticated());
 
         http.oauth2Login(oauth2 -> oauth2

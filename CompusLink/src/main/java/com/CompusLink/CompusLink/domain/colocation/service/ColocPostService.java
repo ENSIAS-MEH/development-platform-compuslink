@@ -99,6 +99,14 @@ public class ColocPostService {
         );
     }
 
+    public void deletePost(UUID postId, UUID userId) {
+        ColocPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post non trouvé"));
+        if (!java.util.Objects.equals(post.getPosterId(), userId))
+            throw new AccessDeniedException("Non autorisé");
+        postRepository.delete(post);
+    }
+
     public List<ColocPostDTO> getMyPosts(UUID posterId) {
         return postRepository.findByPosterId(posterId).stream()
                 .map(this::toSummaryDTO)

@@ -36,6 +36,23 @@ interface ColocPost {
   createdAt: string;
 }
 
+interface SavedItem {
+  id: string;
+  targetType: string;
+  targetId: string;
+}
+
+interface MyEvent {
+  id: string;
+  title: string;
+  city: string;
+  eventDate: string;
+  category: string;
+  participantCount: number;
+  coverUrl: string | null;
+  cancelled: boolean;
+}
+
 const STATUS_COLORS: Record<string, string> = {
   OPEN: "bg-blue-100 text-blue-700",
   SOLD: "bg-red-100 text-red-700",
@@ -47,8 +64,11 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [colocPosts, setColocPosts] = useState<ColocPost[]>([]);
-  const [savedItems, setSavedItems] = useState<Item[]>([]);
-  const [activeTab, setActiveTab] = useState<"marketplace" | "colocation" | "favoris">("marketplace");
+  const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
+  const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
+  const [myParticipations, setMyParticipations] = useState<MyEvent[]>([]);
+  const [eventsSubTab, setEventsSubTab] = useState<"organized" | "participating">("organized");
+  const [activeTab, setActiveTab] = useState<"marketplace" | "colocation" | "favoris" | "events">("marketplace");
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({ fullName: "", university: "", city: "", phoneNumber: "", bio: "" });
@@ -68,8 +88,10 @@ export default function ProfilePage() {
       api.get("/me/profile"),
       api.get("/marketplace/my-items"),
       api.get("/colocations/my-posts"),
-      api.get("/marketplace/my-interests"),
-    ]).then(([profileRes, itemsRes, colocRes, savedRes]) => {
+      api.get("/saved"),
+      api.get("/events/my-events"),
+      api.get("/events/my-participations"),
+    ]).then(([profileRes, itemsRes, colocRes, savedRes, eventsRes, participationsRes]) => {
       setProfile(profileRes.data);
       setForm({
         fullName: profileRes.data.fullName || "",
@@ -81,6 +103,8 @@ export default function ProfilePage() {
       setItems(itemsRes.data);
       setColocPosts(colocRes.data);
       setSavedItems(savedRes.data);
+      setMyEvents(eventsRes.data);
+      setMyParticipations(participationsRes.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -95,6 +119,24 @@ export default function ProfilePage() {
     }
   };
 
+  const deleteItem = async (id: string) => {
+    if (!confirm("Supprimer cette annonce ?")) return;
+    await api.delete(`/marketplace/items/${id}`);
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const deleteColoc = async (id: string) => {
+    if (!confirm("Supprimer cette colocation ?")) return;
+    await api.delete(`/colocations/${id}`);
+    setColocPosts((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const deleteEvent = async (id: string) => {
+    if (!confirm("Supprimer cet événement ?")) return;
+    await api.delete(`/events/${id}`);
+    setMyEvents((prev) => prev.filter((e) => e.id !== id));
+  };
+
   if (loading) return <div className="flex justify-center items-center h-64 text-gray-400">Loading...</div>;
   if (!profile) return null;
 
@@ -103,6 +145,7 @@ export default function ProfilePage() {
   const tabs = [
     { key: "marketplace", label: "Mes Annonces Marketplace" },
     { key: "colocation", label: "Mes Colocations" },
+    { key: "events", label: "Mes Événements" },
     { key: "favoris", label: "Favoris" },
   ] as const;
 
@@ -236,7 +279,11 @@ export default function ProfilePage() {
             {activeTab === "marketplace" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {items.map((item) => (
-                  <Link key={item.id} to={`/marketplace/${item.id}`} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                  <div key={item.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <button onClick={() => deleteItem(item.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
+                    <Link to={`/marketplace/${item.id}`}>
                     <div className="relative h-40 bg-gray-100">
                       {item.coverImageUrl ? (
                         <img src={item.coverImageUrl} className="w-full h-full object-cover" alt={item.title} />
@@ -254,7 +301,8 @@ export default function ProfilePage() {
                       </div>
                       <p className="text-xs text-gray-400 mt-2">{new Date(item.createdAt).toLocaleDateString("fr-FR")}</p>
                     </div>
-                  </Link>
+                    </Link>
+                  </div>
                 ))}
                 <Link to="/marketplace/create" className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px]">
                   <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
@@ -267,7 +315,11 @@ export default function ProfilePage() {
             {activeTab === "colocation" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {colocPosts.map((post) => (
-                  <Link key={post.id} to={`/colocation/${post.id}`} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                  <div key={post.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <button onClick={() => deleteColoc(post.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
+                    <Link to={`/colocation/${post.id}`}>
                     <div className="relative h-40 bg-gray-100">
                       {post.coverUrl ? (
                         <img src={post.coverUrl} className="w-full h-full object-cover" alt={post.title} />
@@ -286,7 +338,8 @@ export default function ProfilePage() {
                       <p className="text-xs text-gray-500 mt-1">{post.city}</p>
                       <p className="text-xs text-gray-400 mt-2">{new Date(post.createdAt).toLocaleDateString("fr-FR")}</p>
                     </div>
-                  </Link>
+                    </Link>
+                  </div>
                 ))}
                 <Link to="/colocation/create" className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px]">
                   <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
@@ -295,26 +348,79 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* Events */}
+            {activeTab === "events" && (
+              <div>
+                {/* Sub-tabs */}
+                <div className="flex gap-4 mb-5">
+                  {[{ key: "organized", label: "Mes événements" }, { key: "participating", label: "Je participe" }].map((t) => (
+                    <button key={t.key} onClick={() => setEventsSubTab(t.key as any)}
+                      className={`text-sm font-medium pb-2 border-b-2 transition-colors ${eventsSubTab === t.key ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900"}`}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(eventsSubTab === "organized" ? myEvents : myParticipations).map((event) => (
+                    <div key={event.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                      {eventsSubTab === "organized" && (
+                        <button onClick={() => deleteEvent(event.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                          <span className="material-symbols-outlined text-[14px]">delete</span>
+                        </button>
+                      )}
+                      <Link to={`/events/${event.id}`}>
+                        <div className="relative h-40 bg-gray-100">
+                          {event.coverUrl ? (
+                            <img src={event.coverUrl} className="w-full h-full object-cover" alt={event.title} />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
+                              <span className="material-symbols-outlined text-primary text-4xl">event</span>
+                            </div>
+                          )}
+                          <span className="absolute top-3 left-3 bg-white/90 text-xs font-semibold px-2 py-1 rounded-md">{event.category}</span>
+                        </div>
+                        <div className="p-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-sm truncate">{event.title}</h4>
+                            {event.cancelled && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full ml-2 shrink-0">Annulé</span>}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{event.city} · {new Date(event.eventDate).toLocaleDateString("fr-FR")}</p>
+                          <p className="text-xs text-gray-400 mt-1">{event.participantCount} participant{event.participantCount !== 1 ? "s" : ""}</p>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                  {eventsSubTab === "organized" && (
+                    <Link to="/events/create" className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px]">
+                      <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
+                      <p className="text-sm font-medium text-gray-600 mt-2">Créer un événement</p>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Favoris */}
             {activeTab === "favoris" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {savedItems.length === 0 ? (
                   <p className="text-sm text-gray-400 col-span-2 text-center py-12">Aucun favori pour l'instant.</p>
-                ) : savedItems.map((item) => (
-                  <Link key={item.id} to={`/marketplace/${item.id}`} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                    <div className="relative h-40 bg-gray-100">
-                      {item.coverImageUrl ? (
-                        <img src={item.coverImageUrl} className="w-full h-full object-cover" alt={item.title} />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                          <span className="material-symbols-outlined text-4xl">image</span>
-                        </div>
-                      )}
-                      <span className="absolute top-3 right-3 bg-white/90 text-xs font-semibold px-2 py-1 rounded-md">{item.price} MAD</span>
-                    </div>
-                    <div className="p-4">
-                      <h4 className="font-semibold text-sm truncate">{item.title}</h4>
-                      <p className="text-xs text-gray-400 mt-2">{new Date(item.createdAt).toLocaleDateString("fr-FR")}</p>
+                ) : savedItems.map((saved) => (
+                  <Link key={saved.id} to={
+                    saved.targetType === "ITEM" ? `/marketplace/${saved.targetId}` :
+                    saved.targetType === "COLOC" ? `/colocation/${saved.targetId}` :
+                    saved.targetType === "OFFER" ? `/offers/${saved.targetId}` :
+                    `/events/${saved.targetId}`
+                  } className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-shadow flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary text-2xl">
+                      {saved.targetType === "ITEM" ? "shopping_bag" :
+                       saved.targetType === "COLOC" ? "home" :
+                       saved.targetType === "OFFER" ? "work" : "event"}
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium">{saved.targetType}</p>
+                      <p className="text-xs text-gray-400">{saved.targetId}</p>
                     </div>
                   </Link>
                 ))}
