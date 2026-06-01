@@ -42,8 +42,11 @@ public class ColocPostController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ColocPostDTO> getPostDetails(@PathVariable UUID id,
-                                                       @AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(postService.getPostDetails(id, principal.getUser().getId()));
+            @AuthenticationPrincipal UserPrincipal principal) {
+        // CORRECTION : On vérifie si principal est nul avant d'appeler .getUser()
+        UUID currentUserId = (principal != null) ? principal.getUser().getId() : null;
+
+        return ResponseEntity.ok(postService.getPostDetails(id, currentUserId));
     }
 
     @PostMapping

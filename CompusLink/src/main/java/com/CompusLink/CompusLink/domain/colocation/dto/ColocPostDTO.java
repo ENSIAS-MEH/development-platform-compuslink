@@ -9,27 +9,34 @@ import java.util.UUID;
 import com.CompusLink.CompusLink.domain.colocation.model.ColocStatus;
 import com.CompusLink.CompusLink.domain.colocation.model.HousingType;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
 @Builder
-public record ColocPostDTO(
-    UUID id,
-    UUID posterId,
-    String title,
-    String description,
-    String city,
-    String address,
-    LocalDate startDate,
-    Integer spotsNeeded,
-    Integer spotsConfirmed,
-    HousingType housingType,
-    BigDecimal rentPerPerson,
-    Boolean furnished,
-    ColocStatus status,
-    String coverUrl, // Ajouté pour le résumé des listes
-    Long totalInterests, // Requis par Task 5.1 (nombre total d'intéressés)
-    Long pendingInterests, // Requis par Task 5.1 (visibilité conditionnelle)
-    List<ColocAmenityDTO> amenities,
-    List<ColocImageDTO> images,
-    OffsetDateTime createdAt
-) {}
+@NoArgsConstructor
+@AllArgsConstructor
+public class ColocPostDTO {
+
+    private UUID id;
+    private UUID posterId;
+    private String title;
+    private String description;
+    private String city;
+    private String address;
+    private LocalDate startDate;
+    private Integer spotsNeeded;
+    private Integer spotsConfirmed;
+    private HousingType housingType;
+    private BigDecimal rentPerPerson;
+    private Boolean furnished;
+    private ColocStatus status;
+    private String coverUrl;
+    private Long totalInterests;
+    private Long pendingInterests;
+    private List<ColocAmenityDTO> amenities;
+    private List<ColocImageDTO> images;
+    private OffsetDateTime createdAt;
+}
