@@ -14,7 +14,7 @@ import CreateItemPage from "./pages/CreateItemPage";
 // import OffersPage from "./pages/OffersPage";
 // import OfferDetailPage from "./pages/OfferDetailPage";
 // import CreateOfferPage from "./pages/CreateOfferPage";
-// import ProfilePage from "./pages/ProfilePage";
+import ProfilePage from "./pages/ProfilePage";
 // import MyApplicationsPage from "./pages/MyApplicationsPage";
 
 export default function App() {
@@ -35,7 +35,7 @@ export default function App() {
             {/* <Route path="/offers" element={<OffersPage />} /> */}
             {/* <Route path="/offers/:id" element={<OfferDetailPage />} /> */}
             {/* <Route path="/offers/create" element={<ProtectedRoute><CreateOfferPage /></ProtectedRoute>} /> */}
-            {/* <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} /> */}
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             {/* <Route path="/my-applications" element={<ProtectedRoute><MyApplicationsPage /></ProtectedRoute>} /> */}
             <Route path="/events" element={<HomePage />} />
           </Route>

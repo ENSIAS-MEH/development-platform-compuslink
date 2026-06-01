@@ -20,6 +20,10 @@ public class DataInitializer {
     @Bean
     CommandLineRunner initializeData(UserRepository userRepository, ItemRepository itemRepository) {
         return args -> {
+            if (userRepository.existsByEmail("seller@example.com")) {
+                log.info("✅ Mock data already exists, skipping initialization");
+                return;
+            }
             // Create test user
             Users testUser = Users.builder()
                     .email("seller@example.com")
