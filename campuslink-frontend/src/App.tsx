@@ -5,9 +5,9 @@ import MainLayout from "./components/MainLayout";
 import AuthPage from "./pages/AuthPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import HomePage from "./pages/HomePage";
-// import ColocationPage from "./pages/ColocationPage";
-// import ColocationDetailPage from "./pages/ColocationDetailPage";
-// import CreateColocationPage from "./pages/CreateColocationPage";
+import ColocationPage from "./pages/ColocationPage";
+import ColocationDetailPage from "./pages/ColocationDetailPage";
+import CreateColocationPage from "./pages/CreateColocationPage";
 import MarketplacePage from "./pages/MarketplacePage";
 import ItemDetailPage from "./pages/ItemDetailPage";
 import CreateItemPage from "./pages/CreateItemPage";
@@ -26,9 +26,9 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
-            {/* <Route path="/colocation" element={<ColocationPage />} /> */}
-            {/* <Route path="/colocation/:id" element={<ColocationDetailPage />} /> */}
-            {/* <Route path="/colocation/create" element={<ProtectedRoute><CreateColocationPage /></ProtectedRoute>} /> */}
+            {<Route path="/colocation" element={<ColocationPage />} />}
+            {<Route path="/colocation/:id" element={<ColocationDetailPage />} />}
+            {<Route path="/colocation/create" element={<ProtectedRoute><CreateColocationPage /></ProtectedRoute>} />}
             <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/marketplace/:id" element={<ItemDetailPage />} />
             <Route path="/marketplace/create" element={<ProtectedRoute><CreateItemPage /></ProtectedRoute>} />
