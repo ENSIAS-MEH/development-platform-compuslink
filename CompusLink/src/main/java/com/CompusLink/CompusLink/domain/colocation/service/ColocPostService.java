@@ -99,9 +99,22 @@ public class ColocPostService {
         );
     }
 
+    public void deletePost(UUID postId, UUID userId) {
+        ColocPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post non trouvé"));
+        if (!java.util.Objects.equals(post.getPosterId(), userId))
+            throw new AccessDeniedException("Non autorisé");
+        postRepository.delete(post);
+    }
+
+    public List<ColocPostDTO> getMyPosts(UUID posterId) {
+        return postRepository.findByPosterId(posterId).stream()
+                .map(this::toSummaryDTO)
+                .collect(Collectors.toList());
+    }
+
     // --- Task 5.3: Lister les posts (Filtrage & Pagination) ---
-    public Page<ColocPostDTO> browsePosts(String city, HousingType type, Boolean furnished, BigDecimal rentMax, ColocStatus status, Pageable pageable) {
-        return postRepository.findWithFilters(city, type, furnished, rentMax, status, pageable)
+    public Page<ColocPostDTO> browsePosts(String city, HousingType type, Boolean furnished, BigDecimal rentMax, ColocStatus status, Pageable pageable) {        return postRepository.findWithFilters(city, type, furnished, rentMax, status, pageable)
                 .map(this::toSummaryDTO);
     }
 

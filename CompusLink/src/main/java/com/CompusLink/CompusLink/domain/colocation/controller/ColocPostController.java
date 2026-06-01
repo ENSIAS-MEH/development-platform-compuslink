@@ -1,6 +1,7 @@
 package com.CompusLink.CompusLink.domain.colocation.controller;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -28,6 +29,18 @@ import lombok.RequiredArgsConstructor;
 public class ColocPostController {
 
     private final ColocPostService postService;
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePost(@PathVariable UUID id,
+                                           @AuthenticationPrincipal UserPrincipal principal) {
+        postService.deletePost(id, principal.getUser().getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/my-posts")
+    public ResponseEntity<List<ColocPostDTO>> getMyPosts(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(postService.getMyPosts(principal.getUser().getId()));
+    }
 
     @GetMapping
     public ResponseEntity<Page<ColocPostDTO>> browsePosts(
