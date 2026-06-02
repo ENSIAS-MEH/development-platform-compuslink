@@ -5,7 +5,7 @@ export default function ColocationDetailPage() {
   const { id } = useParams();
   const [coloc, setColoc] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [interestMessage, setInterestMessage] = useState("Bonjour, je suis très intéressé par votre colocation !");
   const [sendingInterest, setSendingInterest] = useState(false);
@@ -70,10 +70,7 @@ export default function ColocationDetailPage() {
   if (error && !coloc) return <div className="text-center py-24 text-red-500"> {error}</div>;
   if (!coloc) return null;
 
-  // Tri des images téléversées
   const sortedImages = coloc.images ? [...coloc.images].sort((a: any, b: any) => a.sortOrder - b.sortOrder) : [];
-
-  // CORRECTION : S'il n'y a pas de photo, mainImage devient vide (null) au lieu d'utiliser Unsplash
   const mainImage = coloc.coverUrl || sortedImages[0]?.url || null;
   const remainingSpots = coloc.spotsNeeded - (coloc.spotsConfirmed || 0);
 
@@ -83,14 +80,12 @@ export default function ColocationDetailPage() {
         <span className="material-symbols-outlined text-[16px]">arrow_back</span> Retour aux annonces
       </Link>
 
-      {/* CORRECTION : La grille d'images ne s'affiche QUE s'il y a au moins une vraie image disponible */}
       {mainImage && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 rounded-2xl overflow-hidden mb-8">
           <div className={`${sortedImages.length > 1 ? "lg:col-span-2" : "col-span-full"} h-80`}>
             <img src={mainImage} className="w-full h-full object-cover" alt="Vue principale" />
           </div>
 
-          {/* Les cases de droite ne s'affichent que si l'utilisateur a uploadé plus d'une photo */}
           {sortedImages.length > 1 && (
             <div className="hidden lg:grid grid-rows-2 gap-3">
               {sortedImages[1] && (
@@ -113,6 +108,7 @@ export default function ColocationDetailPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4">
+        {/* COLONNE DE GAUCHE : Détails + Description + Carte */}
         <div className="lg:col-span-2 space-y-6">
           <div>
             <div className="flex items-center gap-3">
@@ -154,9 +150,28 @@ export default function ColocationDetailPage() {
             <h3 className="font-semibold mb-3">Description</h3>
             <p className="text-sm text-gray-600 leading-relaxed">{coloc.description || "Aucune description fournie."}</p>
           </div>
+
+          {/* Carte Google Maps INTÉGRÉE DANS LA COLONNE DE GAUCHE AVEC MARQUEUR */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[20px]">map</span>
+              Localisation
+            </h3>
+            <div className="w-full h-72 rounded-xl overflow-hidden bg-gray-100">
+              <iframe
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(coloc.address + ', ' + coloc.city)}&z=16&output=embed&hl=fr`}
+              ></iframe>
+            </div>
+          </div>
         </div>
 
-        {/* Sidebar */}
+        {/* COLONNE DE DROITE : Sidebar */}
         <div className="space-y-6">
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <p className="text-sm text-gray-500 mb-1">Annonce publiée le :</p>
