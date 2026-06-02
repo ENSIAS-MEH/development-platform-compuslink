@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
+const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext x='50%' y='50%' font-size='20' fill='%236b7280' text-anchor='middle' dy='.3em'%3ENo Image Available%3C/text%3E%3C/svg%3E";
+
 interface Item {
   id: string;
   title: string;
@@ -133,7 +135,14 @@ export default function ItemDetailPage() {
         {/* Image Gallery */}
         <div className="space-y-3">
           <div className="rounded-2xl overflow-hidden h-80 bg-gray-100">
-            <img src={displayImages[selectedImage]} className="w-full h-full object-cover" alt="" />
+            <img
+              src={displayImages[selectedImage]}
+              className="w-full h-full object-cover"
+              alt=""
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+              }}
+            />
           </div>
           {displayImages.length > 1 && (
             <div className="grid grid-cols-3 gap-3">
@@ -143,7 +152,14 @@ export default function ItemDetailPage() {
                   onClick={() => setSelectedImage(i)}
                   className={`rounded-xl overflow-hidden h-24 border-2 transition-colors ${selectedImage === i ? "border-primary" : "border-transparent"}`}
                 >
-                  <img src={img} className="w-full h-full object-cover" alt="" />
+                  <img
+                    src={img}
+                    className="w-full h-full object-cover"
+                    alt=""
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+                    }}
+                  />
                 </button>
               ))}
             </div>
