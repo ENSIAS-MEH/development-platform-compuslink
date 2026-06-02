@@ -25,6 +25,7 @@ import com.CompusLink.CompusLink.domain.colocation.repository.ColocAmenityReposi
 import com.CompusLink.CompusLink.domain.colocation.repository.ColocImageRepository;
 import com.CompusLink.CompusLink.domain.colocation.repository.ColocInterestRepository;
 import com.CompusLink.CompusLink.domain.colocation.repository.ColocPostRepository;
+import com.CompusLink.CompusLink.domain.user.repository.UserRepository;
 import com.CompusLink.CompusLink.exception.AccessDeniedException;
 import com.CompusLink.CompusLink.exception.BusinessRuleException;
 import com.CompusLink.CompusLink.exception.DuplicateResourceException;
@@ -43,8 +44,9 @@ public class ColocPostService {
     private final ColocInterestRepository interestRepository;
     private final ColocAmenityRepository amenityRepository;
     private final ColocFileStorageService fileStorageService;
+    private final UserRepository userRepository;
 
-    // --- Task 5.3: Publier un post (Optimisé) ---
+    // --- Publier un post ---
     public ColocPostDTO createPost(ColocPostDTO request, UUID posterId) {
         ColocPost post = ColocPost.builder()
                 .posterId(posterId)
@@ -64,7 +66,6 @@ public class ColocPostService {
         ColocPost saved = postRepository.save(post);
 
         List<ColocAmenityDTO> savedAmenities = new ArrayList<>();
-        // Équipements optionnels
         if (request.getAmenities() != null) {
             request.getAmenities().forEach(amenityDto -> {
                 ColocAmenity amenity = amenityRepository.save(ColocAmenity.builder()
@@ -75,57 +76,64 @@ public class ColocPostService {
             });
         }
 
-        // On évite getPostDetails immédiat pour des raisons de performance et de cycle de vie de transaction
-        return new ColocPostDTO(
-                saved.getId(),
-                saved.getPosterId(),
-                saved.getTitle(),
-                saved.getDescription(),
-                saved.getCity(),
-                saved.getAddress(),
-                saved.getStartDate(),
-                saved.getSpotsNeeded(),
-                saved.getSpotsConfirmed(),
-                saved.getHousingType(),
-                saved.getRentPerPerson(),
-                saved.getFurnished(),
-                saved.getStatus(),
-                null, // Pas encore de cover
-                0L, // 0 intérêt total
-                0L, // 0 intérêt en attente
-                savedAmenities,
-                List.of(),
-                saved.getCreatedAt()
-        );
+        String authorName = userRepository.findById(posterId)
+                .map(u -> u.getFullName())
+                .orElse("Étudiant Anonyme");
+
+        return ColocPostDTO.builder()
+                .id(saved.getId())
+                .posterId(saved.getPosterId())
+                .posterName(authorName)
+                .title(saved.getTitle())
+                .description(saved.getDescription())
+                .city(saved.getCity())
+                .address(saved.getAddress())
+                .startDate(saved.getStartDate())
+                .spotsNeeded(saved.getSpotsNeeded())
+                .spotsConfirmed(saved.getSpotsConfirmed())
+                .housingType(saved.getHousingType())
+                .rentPerPerson(saved.getRentPerPerson())
+                .furnished(saved.getFurnished())
+                .status(saved.getStatus())
+                .coverUrl(null)
+                .totalInterests(0L)
+                .pendingInterests(0L)
+                .amenities(savedAmenities)
+                .images(List.of())
+                .createdAt(saved.getCreatedAt())
+                .build();
     }
 
-    public void deletePost(UUID postId, UUID userId) {
-        ColocPost post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("Post non trouvé"));
-        if (!java.util.Objects.equals(post.getPosterId(), userId))
-            throw new AccessDeniedException("Non autorisé");
-        postRepository.delete(post);
+    // --- Parcourir les posts ---
+    public Page<ColocPostDTO> browsePosts(UUID currentUserId, String city, HousingType type, Boolean furnished, Integer spotsNeeded, BigDecimal rentMax, Pageable pageable) {
+        return postRepository.findWithFilters(currentUserId, city, type, furnished, spotsNeeded, rentMax, pageable)
+                .map(this::toSummaryDTO);
     }
 
+    // --- Mes Publications ---
     public List<ColocPostDTO> getMyPosts(UUID posterId) {
         return postRepository.findByPosterId(posterId).stream()
                 .map(this::toSummaryDTO)
                 .collect(Collectors.toList());
     }
 
-    // --- Task 5.3: Lister les posts (Filtrage & Pagination) ---
-    public Page<ColocPostDTO> browsePosts(String city, HousingType type, Boolean furnished, BigDecimal rentMax, ColocStatus status, Pageable pageable) {        return postRepository.findWithFilters(city, type, furnished, rentMax, status, pageable)
-                .map(this::toSummaryDTO);
+    // --- Supprimer un post ---
+    public void deletePost(UUID id, UUID currentUserId) {
+        ColocPost post = postRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Post non trouvé"));
+        if (!java.util.Objects.equals(post.getPosterId(), currentUserId)) {
+            throw new AccessDeniedException("Non autorisé à supprimer ce post");
+        }
+        postRepository.delete(post);
     }
 
-    // --- Task 5.3: Voir le détail (Sécurisé contre les NullPointer) ---
+    // --- Voir le détail ---
     public ColocPostDTO getPostDetails(UUID id, UUID currentUserId) {
         ColocPost post = postRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Post non trouvé"));
 
         long totalInterests = interestRepository.countByPostId(id);
-        
-        // CORRECTION : Utilisation de Objects.equals pour supporter le mode déconnecté (currentUserId == null)
+
         long pendingInterests = java.util.Objects.equals(post.getPosterId(), currentUserId)
                 ? interestRepository.countByPostIdAndStatus(id, InterestStatus.PENDING) 
                 : -1;
@@ -133,48 +141,42 @@ public class ColocPostService {
         return toFullDTO(post, totalInterests, (int) pendingInterests);
     }
 
-    // --- Task 5.3: Gestion des places (Logique FULL/OPEN automatique) ---
+    // --- Gestion des places ---
     public void updateSpotsConfirmed(UUID postId, int count, UUID currentUserId) {
         ColocPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Post non trouvé"));
         
         if (!java.util.Objects.equals(post.getPosterId(), currentUserId)) {
-            throw new AccessDeniedException("Accès refusé : Vous n'êtes pas l'auteur de cette annonce");
+            throw new AccessDeniedException("Accès refusé");
         }
         if (count < 0 || count > post.getSpotsNeeded()) {
             throw new BusinessRuleException("Nombre de places spécifié invalide");
         }
 
         post.setSpotsConfirmed(count);
-
-        if (count >= post.getSpotsNeeded()) {
-            post.setStatus(ColocStatus.FULL);
-        } else {
-            post.setStatus(ColocStatus.OPEN);
-        }
+        post.setStatus(count >= post.getSpotsNeeded() ? ColocStatus.FULL : ColocStatus.OPEN);
         
         postRepository.save(post);
     }
 
-    // --- Task 5.3: Intérêts (Acceptation avec atomicité préservée) ---
+    // --- Gestion des demandes d'intérêt ---
     public void handleInterestStatus(UUID interestId, InterestStatus newStatus, UUID currentUserId) {
         ColocInterest interest = interestRepository.findById(interestId)
-                .orElseThrow(() -> new EntityNotFoundException("Demande d'intérêt non trouvée"));
+                .orElseThrow(() -> new EntityNotFoundException("Demande non trouvée"));
         ColocPost post = postRepository.findById(interest.getPostId())
                 .orElseThrow(() -> new EntityNotFoundException("Post associé non trouvé"));
 
         if (!java.util.Objects.equals(post.getPosterId(), currentUserId)) {
-            throw new AccessDeniedException("Non autorisé à modifier cette demande");
+            throw new AccessDeniedException("Non autorisé");
         }
         if (newStatus == InterestStatus.PENDING) {
-            throw new BusinessRuleException("Retour au statut PENDING impossible");
+            throw new BusinessRuleException("Action impossible");
         }
 
         interest.setStatus(newStatus);
         interestRepository.save(interest);
 
         if (newStatus == InterestStatus.ACCEPTED) {
-            // Modification directe pour éviter un findById redondant
             int currentConfirmed = post.getSpotsConfirmed();
             if (currentConfirmed < post.getSpotsNeeded()) {
                 post.setSpotsConfirmed(currentConfirmed + 1);
@@ -183,37 +185,55 @@ public class ColocPostService {
                 }
                 postRepository.save(post);
             } else {
-                throw new BusinessRuleException("Toutes les places de cette colocation ont déjà été confirmées.");
+                throw new BusinessRuleException("Toutes les places ont déjà été confirmées.");
             }
         }
     }
 
-    // --- Task 5.3: Gestion des photos ---
-    public void uploadPhoto(UUID postId, MultipartFile file, boolean isCover, UUID requesterId) {
-        ColocPost post = postRepository.findById(postId).orElseThrow();
-        if (!java.util.Objects.equals(post.getPosterId(), requesterId))
+    // --- Multi-Upload de photos avec liaison de la couverture ---
+    public void uploadPhotos(UUID postId, List<MultipartFile> files, UUID requesterId) {
+        ColocPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post non trouvé"));
+        if (!java.util.Objects.equals(post.getPosterId(), requesterId)) {
             throw new AccessDeniedException("Non autorisé");
+        }
         
-        if (imageRepository.countByPostId(postId) >= 10)
-            throw new BusinessRuleException("Limite de 10 photos atteinte");
-
-        String url = fileStorageService.store(file);
-        
-        if (isCover) { // Réinitialiser l'ancienne cover
-            imageRepository.findByPostAndIsCoverTrue(post).ifPresent(img -> {
-                img.setIsCover(false);
-                imageRepository.save(img);
-            });
+        long currentCount = imageRepository.countByPostId(postId);
+        if (currentCount + files.size() > 10) {
+            throw new BusinessRuleException("Limite globale de 10 photos atteinte.");
         }
 
-        imageRepository.save(ColocImage.builder()
-                .post(post)
-                .url(url)
-                .isCover(isCover)
-                .build());
+        String firstUploadedUrl = null;
+
+        for (int i = 0; i < files.size(); i++) {
+            MultipartFile file = files.get(i);
+            String url = fileStorageService.store(file);
+
+            boolean isCover = (currentCount == 0 && i == 0);
+            if (isCover) {
+                firstUploadedUrl = url;
+            }
+
+            imageRepository.save(ColocImage.builder()
+                    .post(post)
+                    .url(url)
+                    .isCover(isCover)
+                    .sortOrder((int) (currentCount + i))
+                    .build());
+        }
+
+        // Utilisation du setter de coverUrl (généré par @Data sur ColocPost)
+        if (firstUploadedUrl != null) {
+            post.setCoverUrl(firstUploadedUrl);
+            postRepository.save(post);
+        }
     }
 
-    // --- Task 5.3: Exprimer son intérêt ---
+    public void uploadPhoto(UUID postId, MultipartFile file, boolean isCover, UUID requesterId) {
+        uploadPhotos(postId, List.of(file), requesterId);
+    }
+
+    // --- Exprimer son intérêt ---
     public void expressInterest(UUID postId, String message, UUID userId) {
         ColocPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Post non trouvé"));
@@ -225,7 +245,7 @@ public class ColocPostService {
             throw new BusinessRuleException("Vous ne pouvez pas postuler à votre propre annonce");
         }
         if (interestRepository.existsByPostIdAndUserId(postId, userId)) {
-            throw new DuplicateResourceException("Vous avez déjà exprimé votre intérêt pour ce logement");
+            throw new DuplicateResourceException("Vous avez déjà exprimé votre intérêt");
         }
 
         ColocInterest interest = ColocInterest.builder()
@@ -238,72 +258,79 @@ public class ColocPostService {
         interestRepository.save(interest);
     }
 
-    // --- Mappers Internes ---
+    // --- Mappers Internes avec la bonne méthode findByPostOrderByPriority ---
     private ColocPostDTO toFullDTO(ColocPost post, long total, int pending) {
         List<ColocAmenityDTO> amenities = amenityRepository.findByPost(post).stream()
                 .map(a -> new ColocAmenityDTO(a.getId(), a.getAmenityType()))
                 .collect(Collectors.toList());
 
+        // CORRECTION : Alignement parfait avec la méthode de ton repository !
         List<ColocImageDTO> images = imageRepository.findByPostOrderByPriority(post).stream()
                 .map(i -> new ColocImageDTO(i.getId(), i.getUrl(), i.getSortOrder(), i.getIsCover()))
                 .toList();
 
-        String cover = imageRepository.findByPostAndIsCoverTrue(post)
-                .map(ColocImage::getUrl)
-                .orElse(null);
+        String cover = post.getCoverUrl(); // Récupération directe du champ de l'entité principale
 
-        return new ColocPostDTO(
-                post.getId(),
-                post.getPosterId(),
-                post.getTitle(),
-                post.getDescription(),
-                post.getCity(),
-                post.getAddress(),
-                post.getStartDate(),
-                post.getSpotsNeeded(),
-                post.getSpotsConfirmed(),
-                post.getHousingType(),
-                post.getRentPerPerson(),
-                post.getFurnished(),
-                post.getStatus(),
-                cover,
-                total,
-                (long) pending,
-                amenities,
-                images,
-                post.getCreatedAt()
-        );
+        String authorName = userRepository.findById(post.getPosterId())
+                .map(u -> u.getFullName())
+                .orElse("Étudiant Anonyme");
+
+        return ColocPostDTO.builder()
+                .id(post.getId())
+                .posterId(post.getPosterId())
+                .posterName(authorName)
+                .title(post.getTitle())
+                .description(post.getDescription())
+                .city(post.getCity())
+                .address(post.getAddress())
+                .startDate(post.getStartDate())
+                .spotsNeeded(post.getSpotsNeeded())
+                .spotsConfirmed(post.getSpotsConfirmed())
+                .housingType(post.getHousingType())
+                .rentPerPerson(post.getRentPerPerson())
+                .furnished(post.getFurnished())
+                .status(post.getStatus())
+                .coverUrl(cover)
+                .totalInterests(total)
+                .pendingInterests((long) pending)
+                .amenities(amenities)
+                .images(images)
+                .createdAt(post.getCreatedAt())
+                .build();
     }
 
     private ColocPostDTO toSummaryDTO(ColocPost post) {
-        String cover = imageRepository.findByPostAndIsCoverTrue(post)
-                .map(ColocImage::getUrl)
-                .orElse(null);
+        String cover = post.getCoverUrl(); // Récupération directe
 
         List<ColocAmenityDTO> amenities = amenityRepository.findByPost(post).stream()
                 .map(a -> new ColocAmenityDTO(a.getId(), a.getAmenityType()))
                 .collect(Collectors.toList());
 
-        return new ColocPostDTO(
-                post.getId(),
-                post.getPosterId(),
-                post.getTitle(),
-                null,
-                post.getCity(),
-                null,
-                null,
-                post.getSpotsNeeded(),
-                post.getSpotsConfirmed(),
-                post.getHousingType(),
-                post.getRentPerPerson(),
-                post.getFurnished(),
-                post.getStatus(),
-                cover,
-                null,
-                null,
-                amenities,
-                null,
-                post.getCreatedAt()
-        );
+        String authorName = userRepository.findById(post.getPosterId())
+                .map(u -> u.getFullName())
+                .orElse("Étudiant Anonyme");
+
+        return ColocPostDTO.builder()
+                .id(post.getId())
+                .posterId(post.getPosterId())
+                .posterName(authorName)
+                .title(post.getTitle())
+                .description(post.getDescription())
+                .city(post.getCity())
+                .address(post.getAddress())
+                .startDate(post.getStartDate())
+                .spotsNeeded(post.getSpotsNeeded())
+                .spotsConfirmed(post.getSpotsConfirmed())
+                .housingType(post.getHousingType())
+                .rentPerPerson(post.getRentPerPerson())
+                .furnished(post.getFurnished())
+                .status(post.getStatus())
+                .coverUrl(cover)
+                .totalInterests(null)
+                .pendingInterests(null)
+                .amenities(amenities)
+                .images(null)
+                .createdAt(post.getCreatedAt())
+                .build();
     }
 }

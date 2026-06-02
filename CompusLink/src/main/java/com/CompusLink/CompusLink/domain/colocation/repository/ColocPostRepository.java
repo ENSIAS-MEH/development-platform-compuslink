@@ -11,27 +11,26 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.CompusLink.CompusLink.domain.colocation.model.ColocPost;
-import com.CompusLink.CompusLink.domain.colocation.model.ColocStatus;
 import com.CompusLink.CompusLink.domain.colocation.model.HousingType;
 
 public interface ColocPostRepository extends JpaRepository<ColocPost, UUID> {
 
     List<ColocPost> findByPosterId(UUID posterId);
-    List<ColocPost> findByStatus(ColocStatus status);
-    List<ColocPost> findByCityIgnoreCase(String city);
 
-    @Query("SELECT p FROM ColocPost p WHERE "
-            + "(:city IS NULL OR LOWER(p.city) = LOWER(:city)) AND "
-            + "(:housingType IS NULL OR p.housingType = :housingType) AND "
-            + "(:furnished IS NULL OR p.furnished = :furnished) AND "
-            + "(:rentMax IS NULL OR p.rentPerPerson <= :rentMax) AND "
-            + "(:status IS NULL OR p.status = :status)")
-
+    @Query("SELECT c FROM ColocPost c WHERE "
+            + "(:currentUserId IS NULL OR c.posterId != :currentUserId) "
+            + "AND c.status = 'OPEN' "
+            + "AND (:city IS NULL OR c.city = :city) "
+            + "AND (:type IS NULL OR c.housingType = :type) "
+            + "AND (:furnished IS NULL OR c.furnished = :furnished) "
+            + "AND (:spotsNeeded IS NULL OR c.spotsNeeded = :spotsNeeded) " // Ligne critique pour le filtre de capacité
+            + "AND (:rentMax IS NULL OR c.rentPerPerson <= :rentMax)")
     Page<ColocPost> findWithFilters(
+            @Param("currentUserId") UUID currentUserId,
             @Param("city") String city,
-            @Param("housingType") HousingType housingType,
+            @Param("type") HousingType type,
             @Param("furnished") Boolean furnished,
+            @Param("spotsNeeded") Integer spotsNeeded, // Ajouté ici pour correspondre au Service !
             @Param("rentMax") BigDecimal rentMax,
-            @Param("status") ColocStatus status,
             Pageable pageable);
 }

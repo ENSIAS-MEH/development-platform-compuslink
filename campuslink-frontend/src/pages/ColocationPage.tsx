@@ -1,13 +1,21 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
-const cities = ["Casablanca", "Rabat", "Marrakech", "Fès", "Tanger"];
+const cities = ["Toutes", "Casablanca", "Rabat", "Marrakech", "Fès", "Tanger"];
 
 export default function ColocationPage() {
-  const [activeCity, setActiveCity] = useState("Casablanca");
+  const [activeCity, setActiveCity] = useState("Toutes");
+  const [furnishedFilter, setFurnishedFilter] = useState("");
+  const [spotsFilter, setSpotsFilter] = useState("");
   const [colocations, setColocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // ÉTAPE REFAITE : Fonction simplifiée qui utilise directement l'adresse complète du serveur
+  const getImageUrl = (url: string) => {
+    if (!url) return "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500";
+    return url;
+  };
 
   useEffect(() => {
     const fetchColocations = async () => {
@@ -15,20 +23,27 @@ export default function ColocationPage() {
       setError(null);
       try {
         const token = localStorage.getItem("accessToken");
-        const headers = {};
-        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const headers: HeadersInit = { "Content-Type": "application/json" };
 
-        // Appel vers ton contrôleur Spring Boot avec filtre de ville
-        const response = await fetch(`http://localhost:8080/api/colocations?city=${activeCity}`, {
+        if (token && token.trim() !== "") {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const params = new URLSearchParams();
+        if (activeCity !== "Toutes") params.append("city", activeCity);
+        if (furnishedFilter !== "") params.append("furnished", furnishedFilter);
+        if (spotsFilter !== "") params.append("spotsNeeded", spotsFilter);
+
+        const response = await fetch(`http://localhost:8080/api/colocations?${params.toString()}`, {
+          method: "GET",
           headers: headers
         });
 
         if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
 
         const data = await response.json();
-        // Extraction de la liste depuis la pagination (.content) de Spring Data
         setColocations(data.content || data);
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
         setError("Impossible de charger les annonces de colocation.");
       } finally {
@@ -37,7 +52,7 @@ export default function ColocationPage() {
     };
 
     fetchColocations();
-  }, [activeCity]);
+  }, [activeCity, furnishedFilter, spotsFilter]);
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
@@ -53,23 +68,53 @@ export default function ColocationPage() {
         </Link>
       </div>
 
-      {/* Filtre par Ville */}
-      <div className="flex items-center gap-3 mt-8">
-        <span className="flex items-center gap-2 text-sm text-gray-500">
+      {/* Barre de filtres de recherche */}
+      <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 mt-8 space-y-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <span className="material-symbols-outlined text-[18px]">tune</span>
-          Filter by City:
-        </span>
-        {cities.map((city) => (
-          <button
-            key={city}
-            onClick={() => setActiveCity(city)}
-            className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-              activeCity === city ? "bg-primary text-white border-primary" : "border-gray-200 text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            {city}
-          </button>
-        ))}
+          Filtres de recherche
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Ville */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Ville</label>
+            <select
+              value={activeCity}
+              onChange={(e) => setActiveCity(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            >
+              {cities.map(c => <option key={c} value={c}>{c === "Toutes" ? "Toutes les villes" : c}</option>)}
+            </select>
+          </div>
+
+          {/* Ameublement */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">État du logement</label>
+            <select
+              value={furnishedFilter}
+              onChange={(e) => setFurnishedFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            >
+              <option value="">Tous les types</option>
+              <option value="true">Meublé</option>
+              <option value="false">Non Meublé</option>
+            </select>
+          </div>
+
+          {/* Capacité Totale */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Capacité maximale</label>
+            <input
+              type="number"
+              min="1"
+              placeholder="Ex: 3"
+              value={spotsFilter}
+              onChange={(e) => setSpotsFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+          </div>
+        </div>
       </div>
 
       {loading && <div className="text-center py-12 text-gray-500">Chargement des annonces...</div>}
@@ -78,47 +123,55 @@ export default function ColocationPage() {
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
           {colocations.length === 0 ? (
-            <div className="col-span-full text-center text-gray-400 py-12">Aucune annonce disponible à {activeCity} pour le moment.</div>
+            <div className="col-span-full text-center text-gray-400 py-12">
+              Aucune annonce ne correspond à vos critères de recherche.
+            </div>
           ) : (
-            colocations.map((coloc) => {
-              // Calcul des places restantes basés sur ColocPostDTO
+              colocations.map((coloc: any) => {
               const spotsLeft = coloc.spotsNeeded - (coloc.spotsConfirmed || 0);
 
               return (
                 <Link to={`/colocation/${coloc.id}`} key={coloc.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="relative h-52">
-                    {/* Synchronisé avec 'coverUrl' de ton ColocPostDTO */}
-                    <img src={coloc.coverUrl || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500"} className="w-full h-full object-cover" alt="" />
-                    <span className={`absolute top-3 right-3 text-xs font-semibold px-3 py-1 rounded-full ${
-                      coloc.status === "OPEN" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
-                    }`}>
+                  <div className="relative h-52 bg-gray-100 flex items-center justify-center">
+                    {/* CORRECTION : Affichage de la VRAIE photo, sinon case vide */}
+                    {coloc.coverUrl ? (
+                      <img src={coloc.coverUrl} className="w-full h-full object-cover" alt="Cover" />
+                    ) : (
+                      <span className="material-symbols-outlined text-gray-300 text-4xl">image_not_supported</span>
+                    )}
+
+                    <span className="absolute top-3 right-3 text-xs font-semibold px-3 py-1 rounded-full bg-green-100 text-green-700">
                       {coloc.status}
                     </span>
                   </div>
                   <div className="p-5">
-                    <h3 className="text-lg font-bold font-[Geist]">{coloc.title}</h3>
-                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                    <h3 className="text-lg font-bold font-[Geist] truncate">{coloc.title}</h3>
+
+                    <p className="text-xs text-primary font-medium mt-1 bg-primary/5 px-2 py-0.5 rounded inline-block">
+                      Par : {coloc.posterName || "Anonyme"}
+                    </p>
+                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-3">
                       <span className="material-symbols-outlined text-[14px]">location_on</span>
                       {coloc.city}
                     </p>
 
-                    <div className="flex items-center gap-6 mt-4 py-3 border-t border-gray-100">
-                      <span className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 mt-4 py-3 border-t border-gray-100 text-xs text-gray-600">
+                      <span className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-[16px]">bed</span>
                         {spotsLeft > 0 ? `${spotsLeft} place${spotsLeft > 1 ? "s" : ""} dispo` : "Complet"}
                       </span>
-                      <span className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="material-symbols-outlined text-[16px]">payments</span>
-                        {coloc.rentPerPerson} DH / mois
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">chair</span>
+                        {coloc.furnished ? "Meublé" : "Non meublé"}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between mt-4 pt-2 border-t border-dashed border-gray-100 text-xs text-gray-400">
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed border-gray-100 text-xs text-gray-400">
                       <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">group</span>
-                        {coloc.totalInterests || 0} demande(s)
+                        <span className="material-symbols-outlined text-[14px]">payments</span>
+                        <strong className="text-gray-700">{coloc.rentPerPerson} DH</strong>/mois
                       </span>
-                      <span>Dispo le : {coloc.startDate}</span>
+                      <span>Dispo : {coloc.startDate}</span>
                     </div>
                   </div>
                 </Link>
