@@ -11,11 +11,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.CompusLink.CompusLink.domain.colocation.dto.ColocPostDTO;
-import com.CompusLink.CompusLink.domain.colocation.model.ColocStatus;
 import com.CompusLink.CompusLink.domain.colocation.model.HousingType;
 import com.CompusLink.CompusLink.domain.colocation.model.InterestStatus;
 import com.CompusLink.CompusLink.domain.colocation.service.ColocPostService;
@@ -44,21 +51,22 @@ public class ColocPostController {
 
     @GetMapping
     public ResponseEntity<Page<ColocPostDTO>> browsePosts(
+            @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) HousingType type,
             @RequestParam(required = false) Boolean furnished,
+            @RequestParam(required = false) Integer spotsNeeded,
             @RequestParam(required = false) BigDecimal rentMax,
-            @RequestParam(required = false) ColocStatus status,
             @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
-        return ResponseEntity.ok(postService.browsePosts(city, type, furnished, rentMax, status, pageable));
+
+        UUID currentUserId = (principal != null) ? principal.getUser().getId() : null;
+        return ResponseEntity.ok(postService.browsePosts(currentUserId, city, type, furnished, spotsNeeded, rentMax, pageable));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ColocPostDTO> getPostDetails(@PathVariable UUID id,
-            @AuthenticationPrincipal UserPrincipal principal) {
-        // CORRECTION : On vérifie si principal est nul avant d'appeler .getUser()
+                                                       @AuthenticationPrincipal UserPrincipal principal) {
         UUID currentUserId = (principal != null) ? principal.getUser().getId() : null;
-
         return ResponseEntity.ok(postService.getPostDetails(id, currentUserId));
     }
 
@@ -91,13 +99,11 @@ public class ColocPostController {
         postService.handleInterestStatus(interestId, status, principal.getUser().getId());
         return ResponseEntity.noContent().build();
     }
-
     @PostMapping(value = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> uploadPhoto(@PathVariable UUID id,
-                                            @RequestParam("file") MultipartFile file,
-                                            @RequestParam(defaultValue = "false") boolean isCover,
-                                            @AuthenticationPrincipal UserPrincipal principal) {
-        postService.uploadPhoto(id, file, isCover, principal.getUser().getId());
+    public ResponseEntity<Void> uploadPhotos(@PathVariable UUID id,
+            @RequestParam("files") List<MultipartFile> files,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        postService.uploadPhotos(id, files, principal.getUser().getId());
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

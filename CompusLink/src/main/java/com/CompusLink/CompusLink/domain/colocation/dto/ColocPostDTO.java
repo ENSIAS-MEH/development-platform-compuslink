@@ -22,6 +22,7 @@ public class ColocPostDTO {
 
     private UUID id;
     private UUID posterId;
+    private String posterName;
     private String title;
     private String description;
     private String city;

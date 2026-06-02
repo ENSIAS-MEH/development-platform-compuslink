@@ -3,11 +3,10 @@ import { Link, useParams } from "react-router-dom";
 
 export default function ColocationDetailPage() {
   const { id } = useParams();
-  const [coloc, setColoc] = useState(null);
+  const [coloc, setColoc] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // États pour gérer l'expression d'intérêt
+
   const [interestMessage, setInterestMessage] = useState("Bonjour, je suis très intéressé par votre colocation !");
   const [sendingInterest, setSendingInterest] = useState(false);
   const [interestSuccess, setInterestSuccess] = useState(false);
@@ -16,13 +15,8 @@ export default function ColocationDetailPage() {
     const fetchDetails = async () => {
       try {
         const token = localStorage.getItem("accessToken");
-        
-        // CORRECTION DE L'EN-TÊTE : On construit les headers proprement
-        const headers = {
-          "Content-Type": "application/json"
-        };
+        const headers: HeadersInit = { "Content-Type": "application/json" };
 
-        // On n'injecte Bearer que si le token existe vraiment pour éviter de corrompre le JwtFilter
         if (token && token.trim() !== "") {
           headers["Authorization"] = `Bearer ${token}`;
         }
@@ -33,25 +27,22 @@ export default function ColocationDetailPage() {
         });
 
         if (!response.ok) {
-          throw new Error(`Erreur serveur (${response.status}) : Impossible d'accéder aux spécifications.`);
+          throw new Error(`Erreur serveur (${response.status}) : Impossible d'accéder à l'annonce.`);
         }
         
         const data = await response.json();
         setColoc(data);
-      } catch (err) {
-        console.error("Erreur attrapée dans fetchDetails:", err);
+      } catch (err: any) {
+        console.error(err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
     
-    if (id) {
-      fetchDetails();
-    }
+    if (id) fetchDetails();
   }, [id]);
 
-  // Fonction pour appeler l'endpoint POST /{id}/interests
   const handleExpressInterest = async () => {
     setSendingInterest(true);
     setError(null);
@@ -59,19 +50,16 @@ export default function ColocationDetailPage() {
       const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("Vous devez être connecté pour exprimer votre intérêt.");
 
-      // CORRECTION : Ajout du 'const' manquant pour sécuriser la déclaration
       const response = await fetch(`http://localhost:8080/api/colocations/${id}/interests?message=${encodeURIComponent(interestMessage)}`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
+        headers: { "Authorization": `Bearer ${token}` }
       });
 
       if (!response.ok) throw new Error("Échec de l'envoi de votre demande d'intérêt.");
 
       setInterestSuccess(true);
-      setColoc(prev => ({ ...prev, pendingInterests: (prev.pendingInterests || 0) + 1 }));
-    } catch (err) {
+      setColoc((prev: any) => ({ ...prev, pendingInterests: (prev.pendingInterests || 0) + 1 }));
+    } catch (err: any) {
       setError(err.message);
     } finally {
       setSendingInterest(false);
@@ -82,8 +70,12 @@ export default function ColocationDetailPage() {
   if (error && !coloc) return <div className="text-center py-24 text-red-500"> {error}</div>;
   if (!coloc) return null;
 
-  const sortedImages = coloc.images ? [...coloc.images].sort((a, b) => a.sortOrder - b.sortOrder) : [];
-  const mainImage = coloc.coverUrl || sortedImages[0]?.url || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800";
+  // Tri des images téléversées
+  const sortedImages = coloc.images ? [...coloc.images].sort((a: any, b: any) => a.sortOrder - b.sortOrder) : [];
+
+  // CORRECTION : S'il n'y a pas de photo, mainImage devient vide (null) au lieu d'utiliser Unsplash
+  const mainImage = coloc.coverUrl || sortedImages[0]?.url || null;
+  const remainingSpots = coloc.spotsNeeded - (coloc.spotsConfirmed || 0);
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
@@ -91,26 +83,49 @@ export default function ColocationDetailPage() {
         <span className="material-symbols-outlined text-[16px]">arrow_back</span> Retour aux annonces
       </Link>
 
-      {/* Grid d'images */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 rounded-2xl overflow-hidden">
-        <div className="lg:col-span-2 h-80">
-          <img src={mainImage} className="w-full h-full object-cover" alt="" />
-        </div>
-        <div className="hidden lg:grid grid-rows-2 gap-3">
-          <img src={sortedImages[1]?.url || "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400"} className="w-full h-full object-cover" alt="" />
-          <img src={sortedImages[2]?.url || "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400"} className="w-full h-full object-cover" alt="" />
-        </div>
-      </div>
+      {/* CORRECTION : La grille d'images ne s'affiche QUE s'il y a au moins une vraie image disponible */}
+      {mainImage && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 rounded-2xl overflow-hidden mb-8">
+          <div className={`${sortedImages.length > 1 ? "lg:col-span-2" : "col-span-full"} h-80`}>
+            <img src={mainImage} className="w-full h-full object-cover" alt="Vue principale" />
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-        {/* Colonne Principale */}
+          {/* Les cases de droite ne s'affichent que si l'utilisateur a uploadé plus d'une photo */}
+          {sortedImages.length > 1 && (
+            <div className="hidden lg:grid grid-rows-2 gap-3">
+              {sortedImages[1] && (
+                <img
+                  src={sortedImages[1].url}
+                  className="w-full h-full object-cover"
+                  alt="Vue secondaire 1"
+                />
+              )}
+              {sortedImages[2] && (
+                <img
+                  src={sortedImages[2].url}
+                  className="w-full h-full object-cover"
+                  alt="Vue secondaire 2"
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4">
         <div className="lg:col-span-2 space-y-6">
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold font-[Geist]">{coloc.title}</h1>
               <span className="text-xs bg-green-100 text-green-700 font-semibold px-3 py-1 rounded-full">{coloc.status}</span>
             </div>
-            <p className="text-gray-500 mt-1 flex items-center gap-1">
+
+            <p className="text-sm font-medium text-gray-600 mt-2 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px] text-primary">account_circle</span>
+              Publié par : <span className="text-primary font-semibold">{coloc.posterName || "Étudiant"}</span>
+            </p>
+
+            <p className="text-gray-500 mt-1 flex items-center gap-1 text-sm">
               <span className="material-symbols-outlined text-[16px]">location_on</span>
               {coloc.address}, {coloc.city}
             </p>
@@ -118,20 +133,20 @@ export default function ColocationDetailPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-              <p className="text-xs text-gray-500">Loyer mensuel</p>
+              <p className="text-xs text-gray-500 font-medium">Loyer mensuel</p>
               <p className="text-lg font-bold text-primary mt-1">{coloc.rentPerPerson} DH</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-              <p className="text-xs text-gray-500">Places dispo</p>
-              <p className="text-lg font-bold mt-1">{coloc.spotsNeeded - (coloc.spotsConfirmed || 0)}</p>
+              <p className="text-xs text-gray-500 font-medium">Places restantes</p>
+              <p className="text-lg font-bold mt-1 text-green-600">{remainingSpots} / {coloc.spotsNeeded}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-              <p className="text-xs text-gray-500">Logement</p>
-              <p className="text-md font-bold mt-1.5">{coloc.housingType}</p>
+              <p className="text-xs text-gray-500 font-medium">Type de local</p>
+              <p className="text-sm font-bold mt-2 truncate text-gray-700">{coloc.housingType}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-              <p className="text-xs text-gray-500">Meublé</p>
-              <p className="text-lg font-bold mt-1">{coloc.furnished ? "Oui" : "Non"}</p>
+              <p className="text-xs text-gray-500 font-medium">État meublé</p>
+              <p className="text-lg font-bold mt-1 text-gray-700">{coloc.furnished ? "Oui" : "Non"}</p>
             </div>
           </div>
 
@@ -139,24 +154,9 @@ export default function ColocationDetailPage() {
             <h3 className="font-semibold mb-3">Description</h3>
             <p className="text-sm text-gray-600 leading-relaxed">{coloc.description || "Aucune description fournie."}</p>
           </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h3 className="font-semibold mb-3">Équipements</h3>
-            <div className="flex flex-wrap gap-2">
-              {coloc.amenities && coloc.amenities.length > 0 ? (
-                coloc.amenities.map((amenity) => (
-                  <span key={amenity.id} className="text-sm bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg font-medium text-gray-700">
-                    {amenity.amenityType}
-                  </span>
-                ))
-              ) : (
-                <p className="text-sm text-gray-400 italic">Aucun équipement renseigné.</p>
-              )}
-            </div>
-          </div>
         </div>
 
-        {/* Sidebar d'action */}
+        {/* Sidebar */}
         <div className="space-y-6">
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <p className="text-sm text-gray-500 mb-1">Annonce publiée le :</p>
@@ -168,18 +168,16 @@ export default function ColocationDetailPage() {
             
             {interestSuccess ? (
               <div className="bg-green-50 border border-green-100 text-green-700 text-sm p-4 rounded-xl text-center font-medium">
-                 Intérêt envoyé avec succès !
+                Intérêt envoyé avec succès !
               </div>
             ) : (
               <div className="space-y-3">
-                <label className="text-xs font-medium text-gray-500">Ajouter un message d'accompagnement :</label>
+                  <label className="text-xs font-medium text-gray-500">Message d'accompagnement :</label>
                 <textarea
                   value={interestMessage}
                   onChange={(e) => setInterestMessage(e.target.value)}
-                  className="w-full text-xs p-3 border border-gray-200 rounded-xl resize-none h-20 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  placeholder="Présentez-vous brièvement..."
-                />
-                
+                    className="w-full text-xs p-3 border border-gray-200 rounded-xl resize-none h-20 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
                 <button 
                   onClick={handleExpressInterest}
                   disabled={sendingInterest}
@@ -190,11 +188,6 @@ export default function ColocationDetailPage() {
                 </button>
               </div>
             )}
-
-            <div className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">schedule</span>
-              {coloc.pendingInterests || 0} demande(s) en attente
-            </div>
           </div>
         </div>
       </div>
