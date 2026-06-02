@@ -85,7 +85,15 @@ public class ApplicationService {
         applicationRepo.saveAll(pending);
 
         return applicationRepo.findByOfferId(offerId).stream()
-                .map(this::toResponse)
+                .map(a -> {
+                    ApplicationResponse resp = toResponse(a);
+                    userRepo.findById(a.getApplicantId())
+                            .ifPresent(u -> {
+                                resp.setApplicantEmail(u.getEmail());
+                                resp.setApplicantName(u.getFullName());
+                            });
+                    return resp;
+                })
                 .toList();
     }
 

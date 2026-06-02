@@ -93,7 +93,14 @@ export default function CreateOfferPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium">Ville</label>
-              <input type="text" placeholder="Casablanca" className="mt-1.5 w-full px-4 py-3 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" value={form.city} onChange={(e) => set("city", e.target.value)} />
+              <select className="mt-1.5 w-full px-4 py-3 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" value={form.city} onChange={(e) => set("city", e.target.value)}>
+                <option value="">Sélectionner</option>
+                <option value="Casablanca">Casablanca</option>
+                <option value="Rabat">Rabat</option>
+                <option value="Marrakech">Marrakech</option>
+                <option value="Fès">Fès</option>
+                <option value="Tanger">Tanger</option>
+              </select>
             </div>
             <div>
               <label className="text-sm font-medium">Mode de travail *</label>

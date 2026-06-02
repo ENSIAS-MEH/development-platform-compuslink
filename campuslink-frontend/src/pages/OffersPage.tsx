@@ -19,10 +19,11 @@ export default function OffersPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
 
   useEffect(() => {
     fetchOffers();
-  }, [typeFilter, locationFilter]);
+  }, [typeFilter, locationFilter, cityFilter]);
 
   const fetchOffers = async () => {
     setLoading(true);
@@ -30,6 +31,7 @@ export default function OffersPage() {
       const params: Record<string, string> = {};
       if (typeFilter) params.type = typeFilter;
       if (locationFilter) params.locationType = locationFilter;
+      if (cityFilter) params.city = cityFilter;
       const { data } = await api.get("/offers", { params });
       setOffers(data.content || []);
     } catch (err) {
@@ -82,6 +84,14 @@ export default function OffersPage() {
           <option value="REMOTE">Remote</option>
           <option value="ON_SITE">On-site</option>
           <option value="HYBRID">Hybrid</option>
+        </select>
+        <select className="px-4 py-3 text-sm text-gray-600 bg-gray-50 rounded-xl border-none outline-none" value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
+          <option value="">Ville</option>
+          <option value="Casablanca">Casablanca</option>
+          <option value="Rabat">Rabat</option>
+          <option value="Marrakech">Marrakech</option>
+          <option value="Fès">Fès</option>
+          <option value="Tanger">Tanger</option>
         </select>
       </div>
 

@@ -18,6 +18,8 @@ public class ApplicationResponse {
     private UUID id;
     private UUID offerId;
     private UUID applicantId;
+    private String applicantEmail;
+    private String applicantName;
     private String cvUrlSnapshot;
     private String message;
     private AppStatus status;
