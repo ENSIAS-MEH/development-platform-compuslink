@@ -10,7 +10,7 @@ interface ItemCard {
   condition: string;
   city: string;
   category: string;
-  images: Array<{ id: string; url: string }>;
+  coverImageUrl: string | null;
 }
 
 interface PaginatedResponse {
@@ -64,7 +64,7 @@ export default function MarketplacePage() {
   });
 
   const getFirstImage = (item: ItemCard) => {
-    return item.images?.length > 0 ? item.images[0].url : "https://via.placeholder.com/400x300";
+    return item.coverImageUrl || "https://via.placeholder.com/400x300";
   };
 
   return (
