@@ -1,17 +1,59 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useParams } from "react-router-dom";
+import api from "../services/api";
 
-const offer = {
-  id: "1", title: "Software Engineering Intern", company: "TechMaroc", type: "INTERNSHIP",
-  city: "Casablanca", locationType: "HYBRID", experienceLevel: "PFE Qualified",
-  duration: "6 mois", domain: "Payments Infrastructure", deadline: "15 Janvier 2025",
-  description: "Rejoignez notre équipe core platform pour construire des microservices scalables. Vous travaillerez avec React, Node.js, et PostgreSQL dans un environnement agile.\n\nResponsabilités:\n• Développer et maintenir des APIs RESTful\n• Participer aux code reviews\n• Collaborer avec l'équipe produit\n• Écrire des tests unitaires et d'intégration\n\nProfil recherché:\n• Étudiant en dernière année d'école d'ingénieur\n• Maîtrise de JavaScript/TypeScript\n• Connaissance de Git et méthodologies agiles\n• Bon niveau en anglais",
-  posted: "il y a 5 jours", applicationCount: 12,
-  logo: "M", logoColor: "bg-blue-600",
-};
+interface Offer {
+  id: string;
+  title: string;
+  company: string;
+  type: string;
+  city: string;
+  locationType: string;
+  experienceLevel: string;
+  duration: string;
+  domain: string;
+  description: string;
+  deadline: string;
+  status: string;
+  createdAt: string;
+  applicationCount: number;
+}
 
 export default function OfferDetailPage() {
+  const { id } = useParams();
+  const [offer, setOffer] = useState<Offer | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showApply, setShowApply] = useState(false);
+  const [message, setMessage] = useState("");
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
+
+  useEffect(() => {
+    api.get(`/offers/${id}`).then(({ data }) => setOffer(data)).catch(console.error).finally(() => setLoading(false));
+  }, [id]);
+
+  const handleApply = async () => {
+    setApplying(true);
+    try {
+      await api.post(`/offers/${id}/applications`, { message: message || undefined });
+      setApplied(true);
+      setShowApply(false);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Erreur lors de la candidature.");
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const timeAgo = (date: string) => {
+    const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+    if (days === 0) return "Aujourd'hui";
+    if (days === 1) return "Hier";
+    return `il y a ${days} jours`;
+  };
+
+  if (loading) return <p className="text-center text-gray-400 py-20">Chargement...</p>;
+  if (!offer) return <p className="text-center text-gray-500 py-20">Offre introuvable.</p>;
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
@@ -24,28 +66,34 @@ export default function OfferDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-2xl border border-gray-100 p-8">
             <div className="flex items-start gap-4">
-              <div className={`w-14 h-14 ${offer.logoColor} rounded-xl flex items-center justify-center text-white font-bold text-lg`}>
-                {offer.logo}
+              <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                {offer.company?.charAt(0) || "?"}
               </div>
               <div>
                 <h1 className="text-2xl font-bold font-[Geist]">{offer.title}</h1>
-                <p className="text-gray-500 mt-1">{offer.company} • {offer.domain}</p>
+                <p className="text-gray-500 mt-1">{offer.company} {offer.domain && `• ${offer.domain}`}</p>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-3 mt-6">
               <span className="text-xs bg-blue-50 text-primary font-medium px-3 py-1.5 rounded-lg flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">work</span> {offer.type === "INTERNSHIP" ? "Stage" : offer.type}
+                <span className="material-symbols-outlined text-[14px]">work</span> {offer.type}
               </span>
-              <span className="text-xs bg-gray-50 text-gray-600 font-medium px-3 py-1.5 rounded-lg flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">location_on</span> {offer.city} ({offer.locationType === "HYBRID" ? "Hybride" : offer.locationType})
-              </span>
-              <span className="text-xs bg-gray-50 text-gray-600 font-medium px-3 py-1.5 rounded-lg flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">schedule</span> {offer.duration}
-              </span>
-              <span className="text-xs bg-gray-50 text-gray-600 font-medium px-3 py-1.5 rounded-lg flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">school</span> {offer.experienceLevel}
-              </span>
+              {offer.city && (
+                <span className="text-xs bg-gray-50 text-gray-600 font-medium px-3 py-1.5 rounded-lg flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">location_on</span> {offer.city} ({offer.locationType?.replace("_", " ")})
+                </span>
+              )}
+              {offer.duration && (
+                <span className="text-xs bg-gray-50 text-gray-600 font-medium px-3 py-1.5 rounded-lg flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">schedule</span> {offer.duration}
+                </span>
+              )}
+              {offer.experienceLevel && (
+                <span className="text-xs bg-gray-50 text-gray-600 font-medium px-3 py-1.5 rounded-lg flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">school</span> {offer.experienceLevel}
+                </span>
+              )}
             </div>
           </div>
 
@@ -58,29 +106,34 @@ export default function OfferDetailPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <button
-              onClick={() => setShowApply(true)}
-              className="w-full bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
-            >
-              Postuler maintenant <span className="material-symbols-outlined text-[16px]">send</span>
-            </button>
-            <button className="w-full mt-3 border border-gray-200 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-              <span className="material-symbols-outlined text-[16px]">bookmark_border</span> Sauvegarder
-            </button>
+            {applied ? (
+              <p className="text-center text-green-600 font-medium py-3">✓ Candidature envoyée</p>
+            ) : (
+              <button
+                onClick={() => setShowApply(true)}
+                className="w-full bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
+              >
+                Postuler maintenant <span className="material-symbols-outlined text-[16px]">send</span>
+              </button>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Date limite</span>
-              <span className="font-medium">{offer.deadline}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Candidatures</span>
-              <span className="font-medium">{offer.applicationCount}</span>
-            </div>
+            {offer.deadline && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Date limite</span>
+                <span className="font-medium">{offer.deadline}</span>
+              </div>
+            )}
+            {offer.applicationCount >= 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Candidatures</span>
+                <span className="font-medium">{offer.applicationCount}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Publié</span>
-              <span className="font-medium">{offer.posted}</span>
+              <span className="font-medium">{timeAgo(offer.createdAt)}</span>
             </div>
           </div>
         </div>
@@ -91,38 +144,24 @@ export default function OfferDetailPage() {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowApply(false)}>
           <div className="bg-white rounded-2xl w-full max-w-lg p-8" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold font-[Geist]">Review Application</h2>
+              <h2 className="text-xl font-bold font-[Geist]">Postuler</h2>
               <button onClick={() => setShowApply(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <p className="text-sm text-gray-500">Applying for</p>
+            <p className="text-sm text-gray-500">Candidature pour</p>
             <h3 className="text-lg font-bold">{offer.title}</h3>
             <p className="text-sm text-primary font-medium">{offer.company}</p>
 
-            <div className="bg-gray-50 rounded-xl p-4 mt-6">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-sm">Attached CV</h4>
-                <button className="text-xs text-primary font-medium">Update</button>
-              </div>
-              <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-100">
-                <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
-                <div>
-                  <p className="text-sm font-medium">Mon_CV_2024.pdf</p>
-                  <p className="text-xs text-gray-400">1.2 MB</p>
-                </div>
-              </div>
-            </div>
-
             <div className="mt-6">
-              <label className="text-sm font-medium">Message to Recruiter (Optional)</label>
-              <textarea placeholder="Briefly explain why you're a good fit..." className="mt-2 w-full h-28 px-4 py-3 border border-gray-200 rounded-xl text-sm resize-none outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+              <label className="text-sm font-medium">Message au recruteur (Optionnel)</label>
+              <textarea placeholder="Expliquez brièvement pourquoi vous êtes un bon candidat..." className="mt-2 w-full h-28 px-4 py-3 border border-gray-200 rounded-xl text-sm resize-none outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={1000} />
             </div>
 
             <div className="flex items-center justify-end gap-3 mt-6">
-              <button onClick={() => setShowApply(false)} className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl">Cancel</button>
-              <button className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark flex items-center gap-2">
-                Submit Application <span className="material-symbols-outlined text-[16px]">send</span>
+              <button onClick={() => setShowApply(false)} className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl">Annuler</button>
+              <button onClick={handleApply} disabled={applying} className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark flex items-center gap-2 disabled:opacity-50">
+                {applying ? "Envoi..." : "Envoyer"} <span className="material-symbols-outlined text-[16px]">send</span>
               </button>
             </div>
           </div>
