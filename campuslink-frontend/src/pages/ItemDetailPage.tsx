@@ -206,18 +206,24 @@ export default function ItemDetailPage() {
                 <p className="font-semibold">{item.sellerName}</p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                if (!user) {
-                  window.location.href = "/auth";
-                  return;
-                }
-                navigate("/messages", { state: { sellerId: item.sellerId, itemName: item.title } });
-              }}
-              className="w-full mt-5 bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined text-[16px]">chat_bubble_outline</span> Contacter le vendeur
-            </button>
+            {user?.userId === item.sellerId ? (
+              <div className="w-full mt-5 bg-gray-100 text-gray-600 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span> C'est votre article
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (!user) {
+                    window.location.href = "/auth";
+                    return;
+                  }
+                  navigate("/messages", { state: { sellerId: item.sellerId, itemName: item.title } });
+                }}
+                className="w-full mt-5 bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">chat_bubble_outline</span> Contacter le vendeur
+              </button>
+            )}
           </div>
 
           <div className="flex gap-3">
