@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
@@ -33,6 +33,7 @@ interface Application {
 export default function OfferDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [offer, setOffer] = useState<Offer | null>(null);
   const [loading, setLoading] = useState(true);
   const [showApply, setShowApply] = useState(false);
@@ -57,6 +58,7 @@ export default function OfferDetailPage() {
   }, [isOwner, id]);
 
   const openApplyModal = async () => {
+    if (!user) { navigate("/auth"); return; }
     try {
       const { data } = await api.get("/me/profile");
       setCvUrl(data.cvUrl);
