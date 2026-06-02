@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
@@ -23,6 +23,7 @@ interface Item {
 export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -200,7 +201,7 @@ export default function ItemDetailPage() {
                   window.location.href = "/auth";
                   return;
                 }
-                alert("Redirection vers chat avec " + item.sellerName);
+                navigate("/messages", { state: { sellerId: item.sellerId, itemName: item.title } });
               }}
               className="w-full mt-5 bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
             >
