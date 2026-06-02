@@ -48,7 +48,8 @@ public class OfferController {
     @GetMapping("/{id}")
     public OfferResponse getById(@PathVariable UUID id,
                                  @AuthenticationPrincipal UserPrincipal principal) {
-        return offerService.getById(id, principal.getUser().getId());
+        UUID currentUserId = principal != null ? principal.getUser().getId() : null;
+        return offerService.getById(id, currentUserId);
     }
 
     @PatchMapping("/{id}/close")

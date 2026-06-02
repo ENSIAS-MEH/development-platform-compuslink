@@ -60,7 +60,7 @@ public class OfferService {
 
     public OfferResponse getById(UUID offerId, UUID currentUserId) {
         Offer offer = findOrThrow(offerId);
-        long count = offer.getPosterId().equals(currentUserId)
+        long count = currentUserId != null && offer.getPosterId().equals(currentUserId)
                 ? applicationRepo.countByOfferId(offerId)
                 : -1;
         return toResponse(offer, count);
