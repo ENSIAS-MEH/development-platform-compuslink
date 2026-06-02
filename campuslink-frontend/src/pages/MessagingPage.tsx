@@ -31,38 +31,43 @@ export default function MessagingPage() {
   const [messageInput, setMessageInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [pollingActive, setPollingActive] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialMessageAttemptedRef = useRef(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const lastMessageTimeRef = useRef<Date>(new Date());
+  const currentConversationIdRef = useRef<string | null>(null);
 
   const locationState = location.state as { sellerId?: string; itemName?: string } | null;
 
   useEffect(() => {
-    fetchConversations();
-
-    // Poll for new conversations every 3 seconds
-    const pollInterval = setInterval(() => {
-      fetchConversations();
-    }, 3000);
-
-    return () => clearInterval(pollInterval);
+    fetchConversations(true); // Initial load with loading state
   }, []);
 
   useEffect(() => {
-    if (selectedConversation) {
-      fetchMessages(selectedConversation.id);
+    if (!selectedConversation) return;
 
-      // Poll for new messages every 2 seconds
-      const pollInterval = setInterval(() => {
+    fetchMessages(selectedConversation.id);
+    setPollingActive(true);
+    lastMessageTimeRef.current = new Date();
+
+    // Poll for new messages every 2 seconds
+    const pollInterval = setInterval(() => {
+      const timeSinceLastMessage = (new Date().getTime() - lastMessageTimeRef.current.getTime()) / 1000 / 60; // minutes
+
+      // Stop polling after 5 minutes of no new messages
+      if (timeSinceLastMessage > 5) {
+        setPollingActive(false);
+        clearInterval(pollInterval);
+      } else {
         fetchMessages(selectedConversation.id);
-      }, 2000);
+      }
+    }, 2000);
 
-      return () => clearInterval(pollInterval);
-    }
+    return () => clearInterval(pollInterval);
   }, [selectedConversation]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   useEffect(() => {
     if (!locationState?.sellerId || !locationState?.itemName) return;
@@ -81,36 +86,44 @@ export default function MessagingPage() {
     }
   }, [locationState, conversations, loading]);
 
-  const fetchConversations = async () => {
+  const fetchConversations = async (isInitialLoad = false) => {
     try {
-      setLoading(true);
+      if (isInitialLoad) setLoading(true);
       const response = await api.get("/messages/conversations");
       setConversations(response.data);
 
-      if (locationState?.sellerId) {
-        // Looking for a specific seller conversation
+      if (locationState?.sellerId && !selectedConversation) {
+        // Looking for a specific seller conversation (only on initial load)
         const sellerConversation = response.data.find(
           (conv: Conversation) => conv.otherUserId === locationState.sellerId
         );
         if (sellerConversation) {
           setSelectedConversation(sellerConversation);
         }
-        // If conversation doesn't exist yet, leave selectedConversation null
       } else if (response.data.length > 0 && !selectedConversation) {
-        // Normal case: select first conversation
+        // Normal case: select first conversation (only if none selected)
         setSelectedConversation(response.data[0]);
       }
     } catch (err) {
       console.error("Erreur lors du chargement des conversations", err);
     } finally {
-      setLoading(false);
+      if (isInitialLoad) setLoading(false);
     }
   };
 
   const fetchMessages = async (conversationId: string) => {
     try {
       const response = await api.get(`/messages/conversations/${conversationId}`);
-      setMessages(response.data);
+      const newMessages = response.data;
+
+      // Check if there are new messages
+      const hasNewMessages = newMessages.length > messages.length;
+
+      setMessages(newMessages);
+
+      if (hasNewMessages) {
+        lastMessageTimeRef.current = new Date();
+      }
     } catch (err) {
       console.error("Erreur lors du chargement des messages", err);
     }
@@ -122,7 +135,7 @@ export default function MessagingPage() {
         content: message,
       });
       // Refresh conversations to include the newly created one
-      fetchConversations();
+      fetchConversations(false);
     } catch (err) {
       console.error("Erreur lors de l'envoi du message initial", err);
     }
@@ -139,7 +152,7 @@ export default function MessagingPage() {
       });
       setMessages([...messages, response.data]);
       setMessageInput("");
-      fetchConversations();
+      fetchConversations(false);
     } catch (err) {
       console.error("Erreur lors de l'envoi du message", err);
     } finally {
@@ -148,8 +161,25 @@ export default function MessagingPage() {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   };
+
+  const handleMessagesScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const isAtBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
+    setShowScrollButton(!isAtBottom);
+  };
+
+  // Scroll to bottom only when switching to a new conversation
+  useEffect(() => {
+    if (selectedConversation && selectedConversation.id !== currentConversationIdRef.current) {
+      currentConversationIdRef.current = selectedConversation.id;
+      setTimeout(() => scrollToBottom(), 50);
+    }
+  }, [selectedConversation?.id]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -243,7 +273,17 @@ export default function MessagingPage() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+              {!pollingActive && (
+                <div className="bg-yellow-50 border-b border-yellow-200 p-3 text-sm text-yellow-800 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px]">warning</span>
+                  Connexion perdue. Rechargez la page pour voir les nouveaux messages.
+                </div>
+              )}
+              <div
+                ref={messagesContainerRef}
+                onScroll={handleMessagesScroll}
+                className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 relative"
+              >
                 {messages.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-gray-500">
                     Commencez la conversation
@@ -279,6 +319,17 @@ export default function MessagingPage() {
                   })
                 )}
                 <div ref={messagesEndRef} />
+
+                {/* Scroll to bottom button */}
+                {showScrollButton && (
+                  <button
+                    onClick={scrollToBottom}
+                    className="fixed right-8 bottom-24 bg-primary text-white rounded-full p-3 shadow-lg hover:bg-primary-dark transition-colors z-10"
+                    title="Aller au dernier message"
+                  >
+                    <span className="material-symbols-outlined">arrow_downward</span>
+                  </button>
+                )}
               </div>
 
               {/* Input */}
