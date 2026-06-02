@@ -50,11 +50,12 @@ public class ItemController {
 
     @GetMapping("/items")
     public List<ItemSummaryResponse> browseItems(
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) ItemCondition condition,
             @RequestParam(required = false) ItemStatus status) {
-        return itemService.browseItems(city, category, condition, status);
+        return itemService.browseItems(search, city, category, condition, status);
     }
 
     @GetMapping("/items/{id}")

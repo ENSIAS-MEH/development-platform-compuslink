@@ -26,4 +26,12 @@ public class ItemSpecification {
         return (root, query, cb) ->
                 status == null ? null : cb.equal(root.get("status"), status);
     }
+
+    public static Specification<Item> containsSearch(String search) {
+        return (root, query, cb) ->
+                search == null || search.isBlank() ? null : cb.or(
+                    cb.like(cb.lower(root.get("title")), "%" + search.toLowerCase() + "%"),
+                    cb.like(cb.lower(root.get("description")), "%" + search.toLowerCase() + "%")
+                );
+    }
 }

@@ -51,9 +51,10 @@ public class ItemService {
         return toItemResponse(saved);
     }
 
-    public List<ItemSummaryResponse> browseItems(String city, String category, ItemCondition condition, ItemStatus status) {
+    public List<ItemSummaryResponse> browseItems(String search, String city, String category, ItemCondition condition, ItemStatus status) {
         Specification<Item> spec = Specification
-                .where(ItemSpecification.hasCity(city))
+                .where(ItemSpecification.containsSearch(search))
+                .and(ItemSpecification.hasCity(city))
                 .and(ItemSpecification.hasCategory(category))
                 .and(ItemSpecification.hasCondition(condition))
                 .and(ItemSpecification.hasStatus(status));

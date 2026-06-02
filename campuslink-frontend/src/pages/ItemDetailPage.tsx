@@ -13,7 +13,8 @@ interface Item {
   status: string;
   description: string;
   images: Array<{ id: string; url: string }>;
-  seller: { userId: string; fullName: string; email: string };
+  sellerId: string;
+  sellerName: string;
   createdAt: string;
 }
 
@@ -141,17 +142,16 @@ export default function ItemDetailPage() {
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold">
-                {item.seller.fullName.charAt(0).toUpperCase()}
+                {item.sellerName.charAt(0).toUpperCase()}
               </div>
               <div>
-                <p className="font-semibold">{item.seller.fullName}</p>
-                <p className="text-xs text-gray-500">{item.seller.email}</p>
+                <p className="font-semibold">{item.sellerName}</p>
               </div>
             </div>
             <button
               onClick={() => {
                 if (user) {
-                  alert("Redirection vers chat avec " + item.seller.fullName);
+                  alert("Redirection vers chat avec " + item.sellerName);
                 } else {
                   alert("Veuillez vous connecter d'abord");
                 }
