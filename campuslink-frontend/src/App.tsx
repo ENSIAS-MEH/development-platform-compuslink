@@ -15,6 +15,10 @@ import ProfilePage from "./pages/ProfilePage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailPage from "./pages/EventDetailPage";
 import CreateEventPage from "./pages/CreateEventPage";
+import OffersPage from "./pages/OffersPage";
+import OfferDetailPage from "./pages/OfferDetailPage";
+import CreateOfferPage from "./pages/CreateOfferPage";
+import MyApplicationsPage from "./pages/MyApplicationsPage";
 
 export default function App() {
   return (
@@ -34,6 +38,10 @@ export default function App() {
             <Route path="/events" element={<EventsPage />} />
             <Route path="/events/create" element={<ProtectedRoute><CreateEventPage /></ProtectedRoute>} />
             <Route path="/events/:id" element={<EventDetailPage />} />
+            <Route path="/offers" element={<OffersPage />} />
+            <Route path="/offers/create" element={<ProtectedRoute><CreateOfferPage /></ProtectedRoute>} />
+            <Route path="/offers/:id" element={<OfferDetailPage />} />
+            <Route path="/offers/my-applications" element={<ProtectedRoute><MyApplicationsPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
