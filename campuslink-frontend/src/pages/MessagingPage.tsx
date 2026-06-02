@@ -38,11 +38,25 @@ export default function MessagingPage() {
 
   useEffect(() => {
     fetchConversations();
+
+    // Poll for new conversations every 3 seconds
+    const pollInterval = setInterval(() => {
+      fetchConversations();
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
   }, []);
 
   useEffect(() => {
     if (selectedConversation) {
       fetchMessages(selectedConversation.id);
+
+      // Poll for new messages every 2 seconds
+      const pollInterval = setInterval(() => {
+        fetchMessages(selectedConversation.id);
+      }, 2000);
+
+      return () => clearInterval(pollInterval);
     }
   }, [selectedConversation]);
 
