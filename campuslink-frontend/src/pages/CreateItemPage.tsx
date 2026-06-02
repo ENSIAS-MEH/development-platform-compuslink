@@ -14,14 +14,26 @@ export default function CreateItemPage() {
     description: "",
     price: "",
     city: "",
-    condition: "Neuf",
+    condition: "NEW",
     category: "Electronics",
   });
+
+  const conditionMap: Record<string, string> = {
+    "NEW": "Neuf",
+    "LIKE_NEW": "Très bon état",
+    "GOOD": "Bon état",
+    "FAIR": "Correct"
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).slice(0, 5);
     setImages(files);
     setPreviewUrls(files.map((f: File) => URL.createObjectURL(f)));
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+    setPreviewUrls(previewUrls.filter((_, i) => i !== index));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -35,6 +47,11 @@ export default function CreateItemPage() {
 
     if (!formData.title.trim() || !formData.price || !formData.city) {
       setError("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    if (images.length === 0) {
+      setError("Veuillez ajouter au moins une photo");
       return;
     }
 
@@ -93,7 +110,16 @@ export default function CreateItemPage() {
           {previewUrls.length > 0 && (
             <div className="grid grid-cols-5 gap-2 mt-4">
               {previewUrls.map((url, i) => (
-                <img key={i} src={url} alt="preview" className="w-full h-20 object-cover rounded-lg" />
+                <div key={i} className="relative group">
+                  <img src={url} alt="preview" className="w-full h-20 object-cover rounded-lg" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(i)}
+                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -160,7 +186,10 @@ export default function CreateItemPage() {
                 onChange={handleInputChange}
                 className="mt-1.5 w-full px-4 py-3 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
-                <option>Neuf</option><option>Très bon état</option><option>Bon état</option><option>Correct</option>
+                <option value="NEW">Neuf</option>
+                <option value="LIKE_NEW">Très bon état</option>
+                <option value="GOOD">Bon état</option>
+                <option value="FAIR">Correct</option>
               </select>
             </div>
             <div>
