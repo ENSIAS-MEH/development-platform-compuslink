@@ -179,11 +179,11 @@ export default function MarketplacePage() {
                 <button
                   onClick={(e) => {
                     e.preventDefault();
-                    if (user) {
-                      alert("Redirection vers chat avec le vendeur");
-                    } else {
-                      alert("Veuillez vous connecter d'abord");
+                    if (!user) {
+                      window.location.href = "/auth";
+                      return;
                     }
+                    alert("Redirection vers chat avec le vendeur");
                   }}
                   className="w-full mt-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
                 >

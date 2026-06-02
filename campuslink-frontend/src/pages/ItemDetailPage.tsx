@@ -45,17 +45,23 @@ export default function ItemDetailPage() {
       .get<Item>(`/marketplace/items/${id}`)
       .then(({ data }) => {
         setItem(data);
-        // Check if item is saved
-        return api.get(`/saved?targetType=ITEM`).then(({ data: savedItems }) => {
-          const isSaved = savedItems.some((s: any) => s.targetId === id);
-          setSaved(isSaved);
-        });
+        // Check if item is saved (only if user is logged in)
+        if (user) {
+          return api.get(`/saved?targetType=ITEM`).then(({ data: savedItems }) => {
+            const isSaved = savedItems.some((s: any) => s.targetId === id);
+            setSaved(isSaved);
+          });
+        }
       })
       .catch((err) => {
+        if (err.response?.status === 401) {
+          window.location.href = "/auth";
+          return;
+        }
         setError(err.response?.data?.message || "Article non trouvé");
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, user]);
 
   const handleSaveItem = async () => {
     if (!user || !item) return;
@@ -174,11 +180,11 @@ export default function ItemDetailPage() {
             </div>
             <button
               onClick={() => {
-                if (user) {
-                  alert("Redirection vers chat avec " + item.sellerName);
-                } else {
-                  alert("Veuillez vous connecter d'abord");
+                if (!user) {
+                  window.location.href = "/auth";
+                  return;
                 }
+                alert("Redirection vers chat avec " + item.sellerName);
               }}
               className="w-full mt-5 bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
             >
