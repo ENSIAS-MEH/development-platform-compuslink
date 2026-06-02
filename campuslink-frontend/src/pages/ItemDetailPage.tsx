@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
+const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext x='50%' y='50%' font-size='20' fill='%236b7280' text-anchor='middle' dy='.3em'%3ENo Image Available%3C/text%3E%3C/svg%3E";
+
 interface Item {
   id: string;
   title: string;
@@ -27,6 +29,16 @@ export default function ItemDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [saved, setSaved] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportingItem, setReportingItem] = useState(false);
+
+  const reportReasons = [
+    { value: "INAPPROPRIATE", label: "Contenu inapproprié" },
+    { value: "SPAM", label: "Spam" },
+    { value: "FAKE", label: "Faux article" },
+    { value: "ALREADY_SOLD", label: "Déjà vendu" },
+    { value: "OTHER", label: "Autre" }
+  ];
 
   useEffect(() => {
     if (!id) return;
@@ -35,17 +47,23 @@ export default function ItemDetailPage() {
       .get<Item>(`/marketplace/items/${id}`)
       .then(({ data }) => {
         setItem(data);
-        // Check if item is saved
-        return api.get(`/saved?targetType=ITEM`).then(({ data: savedItems }) => {
-          const isSaved = savedItems.some((s: any) => s.targetId === id);
-          setSaved(isSaved);
-        });
+        // Check if item is saved (only if user is logged in)
+        if (user) {
+          return api.get(`/saved?targetType=ITEM`).then(({ data: savedItems }) => {
+            const isSaved = savedItems.some((s: any) => s.targetId === id);
+            setSaved(isSaved);
+          });
+        }
       })
       .catch((err) => {
+        if (err.response?.status === 401) {
+          window.location.href = "/auth";
+          return;
+        }
         setError(err.response?.data?.message || "Article non trouvé");
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, user]);
 
   const handleSaveItem = async () => {
     if (!user || !item) return;
@@ -66,23 +84,27 @@ export default function ItemDetailPage() {
     }
   };
 
-  const handleReportItem = async () => {
+  const handleReportItem = (reason: string) => {
     if (!user || !item) return;
 
-    const reason = prompt("Raison du signalement (INAPPROPRIATE, SPAM, FAKE, ALREADY_SOLD, OTHER):");
-    if (!reason) return;
-
-    try {
-      await api.post(`/reports`, {
-        targetType: "ITEM",
-        targetId: item.id,
-        reason: reason.toUpperCase(),
-        details: ""
+    setReportingItem(true);
+    api.post(`/reports`, {
+      targetType: "ITEM",
+      targetId: item.id,
+      reason: reason,
+      details: ""
+    })
+      .then(() => {
+        alert("Merci de votre signalement");
+        setShowReportModal(false);
+      })
+      .catch((err) => {
+        console.error("Erreur lors du signalement", err);
+        alert("Erreur lors du signalement");
+      })
+      .finally(() => {
+        setReportingItem(false);
       });
-      alert("Merci de votre signalement");
-    } catch (err) {
-      console.error("Erreur lors du signalement", err);
-    }
   };
 
   if (loading) {
@@ -101,7 +123,7 @@ export default function ItemDetailPage() {
   }
 
   const imageUrls = item.images?.map(img => img.url) || [];
-  const displayImages = imageUrls.length > 0 ? imageUrls : ["https://via.placeholder.com/400x300"];
+  const displayImages = imageUrls.length > 0 ? imageUrls : ["data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext x='50%' y='50%' font-size='20' fill='%236b7280' text-anchor='middle' dy='.3em'%3ENo Image Available%3C/text%3E%3C/svg%3E"];
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
@@ -113,7 +135,14 @@ export default function ItemDetailPage() {
         {/* Image Gallery */}
         <div className="space-y-3">
           <div className="rounded-2xl overflow-hidden h-80 bg-gray-100">
-            <img src={displayImages[selectedImage]} className="w-full h-full object-cover" alt="" />
+            <img
+              src={displayImages[selectedImage]}
+              className="w-full h-full object-cover"
+              alt=""
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+              }}
+            />
           </div>
           {displayImages.length > 1 && (
             <div className="grid grid-cols-3 gap-3">
@@ -123,7 +152,14 @@ export default function ItemDetailPage() {
                   onClick={() => setSelectedImage(i)}
                   className={`rounded-xl overflow-hidden h-24 border-2 transition-colors ${selectedImage === i ? "border-primary" : "border-transparent"}`}
                 >
-                  <img src={img} className="w-full h-full object-cover" alt="" />
+                  <img
+                    src={img}
+                    className="w-full h-full object-cover"
+                    alt=""
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+                    }}
+                  />
                 </button>
               ))}
             </div>
@@ -160,11 +196,11 @@ export default function ItemDetailPage() {
             </div>
             <button
               onClick={() => {
-                if (user) {
-                  alert("Redirection vers chat avec " + item.sellerName);
-                } else {
-                  alert("Veuillez vous connecter d'abord");
+                if (!user) {
+                  window.location.href = "/auth";
+                  return;
                 }
+                alert("Redirection vers chat avec " + item.sellerName);
               }}
               className="w-full mt-5 bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
             >
@@ -186,13 +222,43 @@ export default function ItemDetailPage() {
               {saved ? "Sauvegardé" : "Sauvegarder"}
             </button>
             <button
-              onClick={handleReportItem}
+              onClick={() => setShowReportModal(true)}
               disabled={!user}
               className="flex-1 border border-gray-200 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
             >
               <span className="material-symbols-outlined text-[16px]">flag</span> Signaler
             </button>
           </div>
+
+          {showReportModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-semibold mb-4">Signaler cet article</h3>
+                <p className="text-sm text-gray-600 mb-6">Sélectionnez la raison du signalement:</p>
+
+                <div className="space-y-2 mb-6">
+                  {reportReasons.map((reason) => (
+                    <button
+                      key={reason.value}
+                      onClick={() => handleReportItem(reason.value)}
+                      disabled={reportingItem}
+                      className="w-full text-left px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium"
+                    >
+                      {reason.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  disabled={reportingItem}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
 
           <p className="text-xs text-gray-400">
             Publié {new Date(item.createdAt).toLocaleDateString("fr-FR")}

@@ -19,6 +19,8 @@ interface PaginatedResponse {
   totalPages: number;
 }
 
+const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext x='50%' y='50%' font-size='20' fill='%236b7280' text-anchor='middle' dy='.3em'%3ENo Image Available%3C/text%3E%3C/svg%3E";
+
 const conditionColors: Record<string, string> = {
   "Neuf": "bg-blue-100 text-blue-700",
   "Très bon état": "bg-green-100 text-green-700",
@@ -79,7 +81,7 @@ export default function MarketplacePage() {
   });
 
   const getFirstImage = (item: ItemCard) => {
-    return item.coverImageUrl || "https://via.placeholder.com/400x300";
+    return item.coverImageUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext x='50%' y='50%' font-size='20' fill='%236b7280' text-anchor='middle' dy='.3em'%3ENo Image Available%3C/text%3E%3C/svg%3E";
   };
 
   return (
@@ -162,7 +164,14 @@ export default function MarketplacePage() {
               className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
             >
               <div className="h-48 bg-gray-100">
-                <img src={getFirstImage(item)} className="w-full h-full object-cover" alt={item.title} />
+                <img
+                  src={getFirstImage(item)}
+                  className="w-full h-full object-cover"
+                  alt={item.title}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+                  }}
+                />
               </div>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
@@ -179,11 +188,11 @@ export default function MarketplacePage() {
                 <button
                   onClick={(e) => {
                     e.preventDefault();
-                    if (user) {
-                      alert("Redirection vers chat avec le vendeur");
-                    } else {
-                      alert("Veuillez vous connecter d'abord");
+                    if (!user) {
+                      window.location.href = "/auth";
+                      return;
                     }
+                    alert("Redirection vers chat avec le vendeur");
                   }}
                   className="w-full mt-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
                 >
