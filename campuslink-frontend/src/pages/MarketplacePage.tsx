@@ -34,18 +34,33 @@ export default function MarketplacePage() {
   const [city, setCity] = useState("");
   const [category, setCategory] = useState("");
   const [priceRange, setPriceRange] = useState("");
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
 
   useEffect(() => {
     const fetchItems = async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams();
-        if (search) params.append("search", search);
-        if (city) params.append("city", city);
-        if (category) params.append("category", category);
+        if (showSavedOnly) {
+          const response = await api.get(`/saved?targetType=ITEM`);
+          const savedItems = response.data.map((save: any) => ({
+            id: save.targetId,
+            title: save.title,
+            price: save.price,
+            city: save.city,
+            category: save.category,
+            condition: save.condition,
+            coverImageUrl: save.coverImageUrl
+          }));
+          setItems(savedItems);
+        } else {
+          const params = new URLSearchParams();
+          if (search) params.append("search", search);
+          if (city) params.append("city", city);
+          if (category) params.append("category", category);
 
-        const response = await api.get<PaginatedResponse>(`/marketplace/items?${params}`);
-        setItems(response.data.content || response.data);
+          const response = await api.get<PaginatedResponse>(`/marketplace/items?${params}`);
+          setItems(response.data.content || response.data);
+        }
       } catch (err) {
         console.error("Erreur lors du chargement des articles", err);
       } finally {
@@ -55,7 +70,7 @@ export default function MarketplacePage() {
 
     const timer = setTimeout(fetchItems, 300);
     return () => clearTimeout(timer);
-  }, [search, city, category]);
+  }, [search, city, category, showSavedOnly]);
 
   const filteredItems = items.filter((item) => {
     if (!priceRange) return true;
@@ -69,7 +84,21 @@ export default function MarketplacePage() {
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
-      <h1 className="text-4xl font-bold font-[Geist]">Marketplace</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold font-[Geist]">Marketplace</h1>
+        {user && (
+          <button
+            onClick={() => setShowSavedOnly(!showSavedOnly)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              showSavedOnly
+                ? "bg-primary text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Mes favoris
+          </button>
+        )}
+      </div>
 
       {/* Search & Filters */}
       <div className="mt-8 bg-white rounded-2xl border border-gray-100 p-2 flex flex-wrap gap-2">

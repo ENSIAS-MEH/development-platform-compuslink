@@ -5,22 +5,32 @@ import com.CompusLink.CompusLink.domain.common.dto.SaveResponse;
 import com.CompusLink.CompusLink.domain.common.model.SavedItem;
 import com.CompusLink.CompusLink.domain.common.model.TargetType;
 import com.CompusLink.CompusLink.domain.common.repository.SavedItemRepository;
+import com.CompusLink.CompusLink.domain.marketplace.model.Item;
+import com.CompusLink.CompusLink.domain.marketplace.model.ItemImage;
+import com.CompusLink.CompusLink.domain.marketplace.repository.ItemRepository;
+import com.CompusLink.CompusLink.domain.marketplace.repository.ItemImageRepository;
 import com.CompusLink.CompusLink.exception.DuplicateResourceException;
 import com.CompusLink.CompusLink.exception.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 @Service
 public class SavedItemService {
 
     private final SavedItemRepository savedItemRepo;
     private final TargetValidationService targetValidation;
+    private final ItemRepository itemRepository;
+    private final ItemImageRepository itemImageRepository;
 
-    public SavedItemService(SavedItemRepository savedItemRepo, TargetValidationService targetValidation) {
+    public SavedItemService(SavedItemRepository savedItemRepo, TargetValidationService targetValidation,
+                          ItemRepository itemRepository, ItemImageRepository itemImageRepository) {
         this.savedItemRepo = savedItemRepo;
         this.targetValidation = targetValidation;
+        this.itemRepository = itemRepository;
+        this.itemImageRepository = itemImageRepository;
     }
 
     public SaveResponse save(SaveRequest request, UUID userId) {
@@ -53,11 +63,25 @@ public class SavedItemService {
     }
 
     private SaveResponse toResponse(SavedItem s) {
-        return SaveResponse.builder()
+        SaveResponse.SaveResponseBuilder builder = SaveResponse.builder()
                 .id(s.getId())
                 .targetType(s.getTargetType())
                 .targetId(s.getTargetId())
-                .createdAt(s.getCreatedAt())
-                .build();
+                .createdAt(s.getCreatedAt());
+
+        if (s.getTargetType() == TargetType.ITEM) {
+            itemRepository.findById(s.getTargetId()).ifPresent(item -> {
+                builder.title(item.getTitle())
+                        .price(item.getPrice())
+                        .city(item.getCity())
+                        .category(item.getCategory())
+                        .condition(item.getCondition().toString());
+
+                Optional<ItemImage> coverImage = itemImageRepository.findFirstByItemAndIsCoverTrue(item);
+                coverImage.ifPresent(img -> builder.coverImageUrl(img.getUrl()));
+            });
+        }
+
+        return builder.build();
     }
 }

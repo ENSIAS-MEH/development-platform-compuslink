@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -19,4 +20,12 @@ public class SaveResponse {
     private TargetType targetType;
     private UUID targetId;
     private OffsetDateTime createdAt;
+
+    // Item details (populated for ITEM targetType)
+    private String title;
+    private BigDecimal price;
+    private String city;
+    private String category;
+    private String condition;
+    private String coverImageUrl;
 }
