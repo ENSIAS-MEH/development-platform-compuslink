@@ -35,6 +35,11 @@ export default function ItemDetailPage() {
       .get<Item>(`/marketplace/items/${id}`)
       .then(({ data }) => {
         setItem(data);
+        // Check if item is saved
+        return api.get(`/saved?targetType=ITEM`).then(({ data: savedItems }) => {
+          const isSaved = savedItems.some((s: any) => s.targetId === id);
+          setSaved(isSaved);
+        });
       })
       .catch((err) => {
         setError(err.response?.data?.message || "Article non trouvé");
@@ -48,10 +53,10 @@ export default function ItemDetailPage() {
     setSavingItem(true);
     try {
       if (saved) {
-        await api.delete(`/marketplace/items/${item.id}/interest`);
+        await api.delete(`/saved/ITEM/${item.id}`);
         setSaved(false);
       } else {
-        await api.post(`/marketplace/items/${item.id}/interest`);
+        await api.post(`/saved`, { targetType: "ITEM", targetId: item.id });
         setSaved(true);
       }
     } catch (err) {
@@ -64,11 +69,16 @@ export default function ItemDetailPage() {
   const handleReportItem = async () => {
     if (!user || !item) return;
 
-    const reason = prompt("Raison du signalement:");
+    const reason = prompt("Raison du signalement (INAPPROPRIATE, SPAM, FAKE, ALREADY_SOLD, OTHER):");
     if (!reason) return;
 
     try {
-      await api.post(`/marketplace/items/${item.id}/report`, { reason });
+      await api.post(`/reports`, {
+        targetType: "ITEM",
+        targetId: item.id,
+        reason: reason.toUpperCase(),
+        details: ""
+      });
       alert("Merci de votre signalement");
     } catch (err) {
       console.error("Erreur lors du signalement", err);
@@ -166,7 +176,11 @@ export default function ItemDetailPage() {
             <button
               onClick={handleSaveItem}
               disabled={savingItem || !user}
-              className="flex-1 border border-gray-200 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+              className={`flex-1 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors ${
+                saved
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : "border border-gray-200 hover:bg-gray-50"
+              }`}
             >
               <span className="material-symbols-outlined text-[16px]">{saved ? "favorite" : "favorite_border"}</span>
               {saved ? "Sauvegardé" : "Sauvegarder"}
