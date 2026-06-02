@@ -19,6 +19,7 @@ import OffersPage from "./pages/OffersPage";
 import OfferDetailPage from "./pages/OfferDetailPage";
 import CreateOfferPage from "./pages/CreateOfferPage";
 import MyApplicationsPage from "./pages/MyApplicationsPage";
+import MessagingPage from "./pages/MessagingPage";
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/offers/create" element={<ProtectedRoute><CreateOfferPage /></ProtectedRoute>} />
             <Route path="/offers/:id" element={<OfferDetailPage />} />
             <Route path="/offers/my-applications" element={<ProtectedRoute><MyApplicationsPage /></ProtectedRoute>} />
+            <Route path="/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

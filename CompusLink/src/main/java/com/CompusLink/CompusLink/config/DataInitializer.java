@@ -11,6 +11,7 @@ import com.CompusLink.CompusLink.domain.marketplace.repository.ItemRepository;
 import com.CompusLink.CompusLink.domain.user.model.Users;
 import com.CompusLink.CompusLink.domain.user.model.UserRole;
 import com.CompusLink.CompusLink.domain.user.repository.UserRepository;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.math.BigDecimal;
 
 @Slf4j
@@ -20,24 +21,41 @@ public class DataInitializer {
     @Bean
     CommandLineRunner initializeData(UserRepository userRepository, ItemRepository itemRepository) {
         return args -> {
-            if (userRepository.existsByEmail("seller@example.com")) {
+            if (userRepository.existsByEmail("arch@gmail.com")) {
                 log.info("✅ Mock data already exists, skipping initialization");
                 return;
             }
-            // Create test user
-            Users testUser = Users.builder()
-                    .email("seller@example.com")
-                    .passwordHash("hashed_password")
-                    .fullName("Anas B.")
+
+            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+            String hashedPassword = encoder.encode("testpass123");
+
+            // Create first user (seller)
+            Users user1 = Users.builder()
+                    .email("arch@gmail.com")
+                    .passwordHash(hashedPassword)
+                    .fullName("Arch User")
                     .city("Rabat")
                     .phoneNumber("+212123456789")
                     .role(UserRole.STUDENT)
                     .isActive(true)
                     .isVerified(true)
                     .build();
-            testUser = userRepository.save(testUser);
+            user1 = userRepository.save(user1);
 
-            // Create test items
+            // Create second user (buyer)
+            Users user2 = Users.builder()
+                    .email("arch2@gmail.com")
+                    .passwordHash(hashedPassword)
+                    .fullName("Arch User 2")
+                    .city("Casablanca")
+                    .phoneNumber("+212987654321")
+                    .role(UserRole.STUDENT)
+                    .isActive(true)
+                    .isVerified(true)
+                    .build();
+            user2 = userRepository.save(user2);
+
+            // Create 8 marketplace items for user1
             itemRepository.save(Item.builder()
                     .title("MacBook Pro M1 2020 - 8GB RAM 256GB SSD")
                     .description("MacBook Pro M1 en excellent état, utilisé pendant 2 ans pour le développement. Batterie à 89% de capacité. Livré avec chargeur original et housse de protection. Aucune rayure sur l'écran.")
@@ -46,7 +64,7 @@ public class DataInitializer {
                     .condition(ItemCondition.LIKE_NEW)
                     .category("Electronics")
                     .status(ItemStatus.OPEN)
-                    .sellerId(testUser.getId())
+                    .sellerId(user1.getId())
                     .build());
 
             itemRepository.save(Item.builder()
@@ -57,7 +75,7 @@ public class DataInitializer {
                     .condition(ItemCondition.NEW)
                     .category("Electronics")
                     .status(ItemStatus.OPEN)
-                    .sellerId(testUser.getId())
+                    .sellerId(user1.getId())
                     .build());
 
             itemRepository.save(Item.builder()
@@ -68,7 +86,7 @@ public class DataInitializer {
                     .condition(ItemCondition.GOOD)
                     .category("Furniture")
                     .status(ItemStatus.OPEN)
-                    .sellerId(testUser.getId())
+                    .sellerId(user1.getId())
                     .build());
 
             itemRepository.save(Item.builder()
@@ -79,7 +97,7 @@ public class DataInitializer {
                     .condition(ItemCondition.LIKE_NEW)
                     .category("Electronics")
                     .status(ItemStatus.OPEN)
-                    .sellerId(testUser.getId())
+                    .sellerId(user1.getId())
                     .build());
 
             itemRepository.save(Item.builder()
@@ -90,7 +108,7 @@ public class DataInitializer {
                     .condition(ItemCondition.GOOD)
                     .category("Books")
                     .status(ItemStatus.OPEN)
-                    .sellerId(testUser.getId())
+                    .sellerId(user1.getId())
                     .build());
 
             itemRepository.save(Item.builder()
@@ -101,7 +119,7 @@ public class DataInitializer {
                     .condition(ItemCondition.LIKE_NEW)
                     .category("Furniture")
                     .status(ItemStatus.OPEN)
-                    .sellerId(testUser.getId())
+                    .sellerId(user1.getId())
                     .build());
 
             itemRepository.save(Item.builder()
@@ -112,7 +130,7 @@ public class DataInitializer {
                     .condition(ItemCondition.NEW)
                     .category("Electronics")
                     .status(ItemStatus.OPEN)
-                    .sellerId(testUser.getId())
+                    .sellerId(user1.getId())
                     .build());
 
             itemRepository.save(Item.builder()
@@ -123,10 +141,10 @@ public class DataInitializer {
                     .condition(ItemCondition.NEW)
                     .category("Furniture")
                     .status(ItemStatus.OPEN)
-                    .sellerId(testUser.getId())
+                    .sellerId(user1.getId())
                     .build());
 
-            log.info("✅ Mock data initialized: 8 marketplace items created successfully");
+            log.info("✅ Mock data initialized: 2 users and 8 marketplace items created successfully");
         };
     }
 }

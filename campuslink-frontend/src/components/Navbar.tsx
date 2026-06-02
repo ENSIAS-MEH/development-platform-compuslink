@@ -6,6 +6,7 @@ const links = [
   { to: "/marketplace", label: "Marketplace" },
   { to: "/offers", label: "Offers" },
   { to: "/events", label: "Events" },
+  { to: "/messages", label: "Messages" },
   { to: "/profile", label: "Profile" },
 ];
 
