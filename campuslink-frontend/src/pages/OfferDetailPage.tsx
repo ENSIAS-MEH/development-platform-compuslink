@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../services/api";
 
@@ -27,12 +27,43 @@ export default function OfferDetailPage() {
   const [message, setMessage] = useState("");
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [cvUrl, setCvUrl] = useState<string | null>(null);
+  const [uploadingCv, setUploadingCv] = useState(false);
+  const cvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.get(`/offers/${id}`).then(({ data }) => setOffer(data)).catch(console.error).finally(() => setLoading(false));
   }, [id]);
 
+  const openApplyModal = async () => {
+    try {
+      const { data } = await api.get("/me/profile");
+      setCvUrl(data.cvUrl);
+    } catch { /* not logged in or error */ }
+    setShowApply(true);
+  };
+
+  const handleCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCv(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await api.post("/me/profile/cv", formData);
+      setCvUrl(data.cvUrl);
+    } catch {
+      alert("Erreur lors de l'upload du CV.");
+    } finally {
+      setUploadingCv(false);
+    }
+  };
+
   const handleApply = async () => {
+    if (!cvUrl) {
+      alert("Veuillez d'abord uploader un CV.");
+      return;
+    }
     setApplying(true);
     try {
       await api.post(`/offers/${id}/applications`, { message: message || undefined });
@@ -51,6 +82,8 @@ export default function OfferDetailPage() {
     if (days === 1) return "Hier";
     return `il y a ${days} jours`;
   };
+
+  const cvFileName = cvUrl ? decodeURIComponent(cvUrl.split("/").pop() || "CV") : null;
 
   if (loading) return <p className="text-center text-gray-400 py-20">Chargement...</p>;
   if (!offer) return <p className="text-center text-gray-500 py-20">Offre introuvable.</p>;
@@ -110,7 +143,7 @@ export default function OfferDetailPage() {
               <p className="text-center text-green-600 font-medium py-3">✓ Candidature envoyée</p>
             ) : (
               <button
-                onClick={() => setShowApply(true)}
+                onClick={openApplyModal}
                 className="w-full bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
               >
                 Postuler maintenant <span className="material-symbols-outlined text-[16px]">send</span>
@@ -153,6 +186,32 @@ export default function OfferDetailPage() {
             <h3 className="text-lg font-bold">{offer.title}</h3>
             <p className="text-sm text-primary font-medium">{offer.company}</p>
 
+            {/* CV Section */}
+            <div className="bg-gray-50 rounded-xl p-4 mt-6">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-sm">CV attaché</h4>
+                <button onClick={() => cvInputRef.current?.click()} className="text-xs text-primary font-medium flex items-center gap-1" disabled={uploadingCv}>
+                  <span className="material-symbols-outlined text-[14px]">{cvUrl ? "edit" : "upload"}</span>
+                  {uploadingCv ? "Upload..." : cvUrl ? "Mettre à jour" : "Uploader"}
+                </button>
+                <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleCvUpload} />
+              </div>
+              {cvUrl ? (
+                <a href={cvUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-100 hover:border-primary transition-colors">
+                  <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{cvFileName}</p>
+                    <p className="text-xs text-gray-400">Cliquez pour voir</p>
+                  </div>
+                </a>
+              ) : (
+                <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-dashed border-gray-300 cursor-pointer" onClick={() => cvInputRef.current?.click()}>
+                  <span className="material-symbols-outlined text-gray-400">upload_file</span>
+                  <p className="text-sm text-gray-500">Aucun CV uploadé. Cliquez pour en ajouter un.</p>
+                </div>
+              )}
+            </div>
+
             <div className="mt-6">
               <label className="text-sm font-medium">Message au recruteur (Optionnel)</label>
               <textarea placeholder="Expliquez brièvement pourquoi vous êtes un bon candidat..." className="mt-2 w-full h-28 px-4 py-3 border border-gray-200 rounded-xl text-sm resize-none outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={1000} />
@@ -160,7 +219,7 @@ export default function OfferDetailPage() {
 
             <div className="flex items-center justify-end gap-3 mt-6">
               <button onClick={() => setShowApply(false)} className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl">Annuler</button>
-              <button onClick={handleApply} disabled={applying} className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark flex items-center gap-2 disabled:opacity-50">
+              <button onClick={handleApply} disabled={applying || !cvUrl} className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark flex items-center gap-2 disabled:opacity-50">
                 {applying ? "Envoi..." : "Envoyer"} <span className="material-symbols-outlined text-[16px]">send</span>
               </button>
             </div>
