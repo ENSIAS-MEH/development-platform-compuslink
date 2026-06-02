@@ -49,8 +49,8 @@ export default function EventDetailPage() {
     if (!user) { navigate("/auth"); return; }
     setActionLoading(true);
     try {
-      const { data } = await api.post(`/events/${id}/join`);
-      setEvent(data);
+      await api.post(`/events/${id}/join`);
+      setEvent(prev => prev ? { ...prev, isParticipating: true, participantCount: prev.participantCount + 1 } : prev);
     } finally {
       setActionLoading(false);
     }
@@ -59,8 +59,8 @@ export default function EventDetailPage() {
   const handleLeave = async () => {
     setActionLoading(true);
     try {
-      const { data } = await api.delete(`/events/${id}/leave`);
-      setEvent(data);
+      await api.delete(`/events/${id}/leave`);
+      setEvent(prev => prev ? { ...prev, isParticipating: false, participantCount: prev.participantCount - 1 } : prev);
     } finally {
       setActionLoading(false);
     }
