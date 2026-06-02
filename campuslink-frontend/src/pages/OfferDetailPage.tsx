@@ -24,6 +24,8 @@ interface Offer {
 interface Application {
   id: string;
   applicantId: string;
+  applicantEmail: string;
+  applicantName: string;
   cvUrlSnapshot: string;
   message: string;
   status: string;
@@ -64,6 +66,18 @@ export default function OfferDetailPage() {
       setCvUrl(data.cvUrl);
     } catch {}
     setShowApply(true);
+  };
+
+  const [showCloseModal, setShowCloseModal] = useState(false);
+
+  const handleClose = async () => {
+    try {
+      const { data } = await api.patch(`/offers/${id}/close`);
+      setOffer(data);
+      setShowCloseModal(false);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Erreur.");
+    }
   };
 
   const handleCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,8 +184,9 @@ export default function OfferDetailPage() {
                           <span className="material-symbols-outlined text-gray-500 text-[20px]">person</span>
                         </div>
                         <div>
-                          <p className="text-sm font-medium">Candidat #{app.applicantId.slice(0, 8)}</p>
-                          {app.message && <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{app.message}</p>}
+                          <p className="text-sm font-medium">{app.applicantName || "Sans nom"}</p>
+                          <p className="text-xs text-gray-500">{app.applicantEmail}</p>
+                          {app.message && <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{app.message}</p>}
                           <p className="text-xs text-gray-400 mt-1">{new Date(app.appliedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>
                         </div>
                       </div>
@@ -198,7 +213,11 @@ export default function OfferDetailPage() {
         <div className="space-y-6">
           {!isOwner && (
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              {applied ? (
+              {offer.status === "CLOSED" ? (
+                <p className="text-center text-gray-500 font-medium py-3 flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">lock</span> Offre clôturée
+                </p>
+              ) : applied ? (
                 <p className="text-center text-green-600 font-medium py-3">✓ Candidature envoyée</p>
               ) : (
                 <button
@@ -206,6 +225,23 @@ export default function OfferDetailPage() {
                   className="w-full bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
                 >
                   Postuler maintenant <span className="material-symbols-outlined text-[16px]">send</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {isOwner && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              {offer.status === "CLOSED" ? (
+                <p className="text-center text-gray-500 font-medium py-3 flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">lock</span> Offre clôturée
+                </p>
+              ) : (
+                <button
+                  onClick={() => setShowCloseModal(true)}
+                  className="w-full bg-red-500 text-white py-3 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span> Clôturer l'offre
                 </button>
               )}
             </div>
@@ -231,6 +267,27 @@ export default function OfferDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Close Offer Confirmation Modal */}
+      {showCloseModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowCloseModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-8 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <span className="material-symbols-outlined text-red-500 text-[28px]">warning</span>
+            </div>
+            <h2 className="text-xl font-bold font-[Geist]">Clôturer cette offre ?</h2>
+            <p className="text-sm text-gray-500 mt-3">Cette action est irréversible. Les candidats ne pourront plus postuler à cette offre.</p>
+            <div className="flex gap-3 mt-8">
+              <button onClick={() => setShowCloseModal(false)} className="flex-1 border border-gray-200 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                Annuler
+              </button>
+              <button onClick={handleClose} className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors">
+                Oui, clôturer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Apply Modal (only for non-owners) */}
       {showApply && !isOwner && (
