@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 interface Offer {
   id: string;
+  posterId: string;
   title: string;
   company: string;
   type: string;
@@ -19,8 +21,18 @@ interface Offer {
   applicationCount: number;
 }
 
+interface Application {
+  id: string;
+  applicantId: string;
+  cvUrlSnapshot: string;
+  message: string;
+  status: string;
+  appliedAt: string;
+}
+
 export default function OfferDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [offer, setOffer] = useState<Offer | null>(null);
   const [loading, setLoading] = useState(true);
   const [showApply, setShowApply] = useState(false);
@@ -29,17 +41,26 @@ export default function OfferDetailPage() {
   const [applied, setApplied] = useState(false);
   const [cvUrl, setCvUrl] = useState<string | null>(null);
   const [uploadingCv, setUploadingCv] = useState(false);
+  const [applications, setApplications] = useState<Application[]>([]);
   const cvInputRef = useRef<HTMLInputElement>(null);
+
+  const isOwner = offer && user && offer.posterId === user.userId;
 
   useEffect(() => {
     api.get(`/offers/${id}`).then(({ data }) => setOffer(data)).catch(console.error).finally(() => setLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    if (isOwner) {
+      api.get(`/offers/${id}/applications`).then(({ data }) => setApplications(data)).catch(console.error);
+    }
+  }, [isOwner, id]);
+
   const openApplyModal = async () => {
     try {
       const { data } = await api.get("/me/profile");
       setCvUrl(data.cvUrl);
-    } catch { /* not logged in or error */ }
+    } catch {}
     setShowApply(true);
   };
 
@@ -60,10 +81,7 @@ export default function OfferDetailPage() {
   };
 
   const handleApply = async () => {
-    if (!cvUrl) {
-      alert("Veuillez d'abord uploader un CV.");
-      return;
-    }
+    if (!cvUrl) { alert("Veuillez d'abord uploader un CV."); return; }
     setApplying(true);
     try {
       await api.post(`/offers/${id}/applications`, { message: message || undefined });
@@ -134,22 +152,62 @@ export default function OfferDetailPage() {
             <h3 className="font-semibold mb-4">Description du poste</h3>
             <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{offer.description}</div>
           </div>
+
+          {/* Owner: Applications list */}
+          {isOwner && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-8">
+              <h3 className="font-semibold mb-4">Candidatures ({applications.length})</h3>
+              {applications.length === 0 ? (
+                <p className="text-sm text-gray-400">Aucune candidature reçue pour le moment.</p>
+              ) : (
+                <div className="space-y-4">
+                  {applications.map((app) => (
+                    <div key={app.id} className="flex items-center justify-between border border-gray-100 rounded-xl p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="material-symbols-outlined text-gray-500 text-[20px]">person</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Candidat #{app.applicantId.slice(0, 8)}</p>
+                          {app.message && <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{app.message}</p>}
+                          <p className="text-xs text-gray-400 mt-1">{new Date(app.appliedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                          app.status === "ACCEPTED" ? "bg-green-100 text-green-700" :
+                          app.status === "REJECTED" ? "bg-red-100 text-red-700" :
+                          app.status === "SEEN" ? "bg-blue-100 text-blue-700" :
+                          "bg-yellow-100 text-yellow-700"
+                        }`}>{app.status}</span>
+                        <a href={app.cvUrlSnapshot} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary text-sm font-medium hover:underline">
+                          <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span> CV
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            {applied ? (
-              <p className="text-center text-green-600 font-medium py-3">✓ Candidature envoyée</p>
-            ) : (
-              <button
-                onClick={openApplyModal}
-                className="w-full bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
-              >
-                Postuler maintenant <span className="material-symbols-outlined text-[16px]">send</span>
-              </button>
-            )}
-          </div>
+          {!isOwner && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              {applied ? (
+                <p className="text-center text-green-600 font-medium py-3">✓ Candidature envoyée</p>
+              ) : (
+                <button
+                  onClick={openApplyModal}
+                  className="w-full bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"
+                >
+                  Postuler maintenant <span className="material-symbols-outlined text-[16px]">send</span>
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
             {offer.deadline && (
@@ -172,8 +230,8 @@ export default function OfferDetailPage() {
         </div>
       </div>
 
-      {/* Apply Modal */}
-      {showApply && (
+      {/* Apply Modal (only for non-owners) */}
+      {showApply && !isOwner && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowApply(false)}>
           <div className="bg-white rounded-2xl w-full max-w-lg p-8" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
