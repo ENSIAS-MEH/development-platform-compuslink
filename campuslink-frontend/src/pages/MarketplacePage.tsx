@@ -21,11 +21,22 @@ interface PaginatedResponse {
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext x='50%' y='50%' font-size='20' fill='%236b7280' text-anchor='middle' dy='.3em'%3ENo Image Available%3C/text%3E%3C/svg%3E";
 
+const conditionMap: Record<string, string> = {
+  "NEW": "Neuf",
+  "LIKE_NEW": "Très bon état",
+  "GOOD": "Bon état",
+  "FAIR": "Correct",
+};
+
 const conditionColors: Record<string, string> = {
   "Neuf": "bg-blue-100 text-blue-700",
   "Très bon état": "bg-green-100 text-green-700",
   "Bon état": "bg-yellow-100 text-yellow-700",
   "Correct": "bg-orange-100 text-orange-700",
+};
+
+const getConditionLabel = (condition: string): string => {
+  return conditionMap[condition] || condition;
 };
 
 export default function MarketplacePage() {
@@ -176,8 +187,8 @@ export default function MarketplacePage() {
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-sm font-semibold leading-tight line-clamp-2">{item.title}</h3>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${conditionColors[item.condition] || "bg-gray-100 text-gray-600"}`}>
-                    {item.condition}
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${conditionColors[getConditionLabel(item.condition)] || "bg-gray-100 text-gray-600"}`}>
+                    {getConditionLabel(item.condition)}
                   </span>
                 </div>
                 <p className="text-primary text-xl font-bold mt-2">{item.price.toLocaleString()} MAD</p>

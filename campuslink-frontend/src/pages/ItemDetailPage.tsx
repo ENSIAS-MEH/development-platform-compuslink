@@ -5,6 +5,17 @@ import { useAuth } from "../context/AuthContext";
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext x='50%' y='50%' font-size='20' fill='%236b7280' text-anchor='middle' dy='.3em'%3ENo Image Available%3C/text%3E%3C/svg%3E";
 
+const conditionMap: Record<string, string> = {
+  "NEW": "Neuf",
+  "LIKE_NEW": "Très bon état",
+  "GOOD": "Bon état",
+  "FAIR": "Correct",
+};
+
+const getConditionLabel = (condition: string): string => {
+  return conditionMap[condition] || condition;
+};
+
 interface Item {
   id: string;
   title: string;
@@ -171,7 +182,7 @@ export default function ItemDetailPage() {
         <div className="space-y-6">
           <div>
             <div className="flex items-center gap-3">
-              <span className="text-xs bg-green-100 text-green-700 font-medium px-2.5 py-1 rounded-full">{item.condition}</span>
+              <span className="text-xs bg-green-100 text-green-700 font-medium px-2.5 py-1 rounded-full">{getConditionLabel(item.condition)}</span>
               <span className="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-full">{item.category}</span>
             </div>
             <h1 className="text-2xl font-bold font-[Geist] mt-3">{item.title}</h1>
