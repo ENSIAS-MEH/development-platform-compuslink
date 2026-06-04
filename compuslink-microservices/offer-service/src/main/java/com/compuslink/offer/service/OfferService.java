@@ -1,95 +1,109 @@
 package com.compuslink.offer.service;
 
 import com.compuslink.common.exception.*;
-import com.compuslink.offer.client.UserClient;
 import com.compuslink.offer.dto.*;
 import com.compuslink.offer.model.*;
-import com.compuslink.offer.repository.*;
-import jakarta.transaction.Transactional;
+import com.compuslink.offer.repository.ApplicationRepository;
+import com.compuslink.offer.repository.OfferRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.UUID;
 
-@Service @RequiredArgsConstructor @Transactional
+@Service
+@RequiredArgsConstructor
 public class OfferService {
 
     private final OfferRepository offerRepo;
-    private final ApplicationRepository appRepo;
-    private final UserClient userClient;
+    private final ApplicationRepository applicationRepo;
 
-    public OfferResponse createOffer(CreateOfferRequest req, UUID posterId) {
-        Offer offer = offerRepo.save(Offer.builder().posterId(posterId).type(req.getType())
-                .title(req.getTitle()).company(req.getCompany()).city(req.getCity())
-                .locationType(req.getLocationType()).experienceLevel(req.getExperienceLevel())
-                .duration(req.getDuration()).description(req.getDescription())
-                .domain(req.getDomain()).deadline(req.getDeadline()).build());
-        return toResponse(offer);
+    public OfferResponse create(CreateOfferRequest request, UUID posterId) {
+        Offer offer = Offer.builder()
+                .posterId(posterId)
+                .type(request.getType())
+                .title(request.getTitle())
+                .company(request.getCompany())
+                .city(request.getCity())
+                .locationType(request.getLocationType())
+                .experienceLevel(request.getExperienceLevel())
+                .duration(request.getDuration())
+                .description(request.getDescription())
+                .domain(request.getDomain())
+                .deadline(request.getDeadline())
+                .build();
+        return toResponse(offerRepo.save(offer), 0);
     }
 
-    public List<OfferResponse> browseOffers(OfferType type) {
-        List<Offer> offers = type == null ? offerRepo.findByStatus(OfferStatus.OPEN)
-                : offerRepo.findByTypeAndStatus(type, OfferStatus.OPEN);
-        return offers.stream().map(this::toResponse).toList();
+    public Page<OfferSummaryResponse> list(OfferType type, String city, String domain,
+                                           LocationType locationType, OfferStatus status,
+                                           int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return offerRepo.findFiltered(type, city, domain, locationType, status, pageable)
+                .map(this::toSummary);
     }
 
-    public OfferResponse getOffer(UUID id) {
-        return toResponse(offerRepo.findById(id).orElseThrow(() -> new EntityNotFoundException("Offer not found")));
+    public List<OfferSummaryResponse> getMyOffers(UUID posterId) {
+        return offerRepo.findByPosterId(posterId).stream()
+                .map(this::toSummary).toList();
     }
 
-    public List<OfferResponse> getMyOffers(UUID posterId) {
-        return offerRepo.findByPosterId(posterId).stream().map(this::toResponse).toList();
+    public OfferResponse getById(UUID offerId, UUID currentUserId) {
+        Offer offer = findOrThrow(offerId);
+        long count = currentUserId != null && offer.getPosterId().equals(currentUserId)
+                ? applicationRepo.countByOfferId(offerId) : -1;
+        return toResponse(offer, count);
     }
 
-    public void closeOffer(UUID id, UUID userId) {
-        Offer offer = offerRepo.findById(id).orElseThrow(() -> new EntityNotFoundException("Offer not found"));
-        if (!offer.getPosterId().equals(userId)) throw new AccessDeniedException("Not authorized");
+    public OfferResponse close(UUID offerId, UUID currentUserId) {
+        Offer offer = findOrThrow(offerId);
+        checkOwnership(offer, currentUserId);
+        if (offer.getStatus() == OfferStatus.CLOSED)
+            throw new BusinessRuleException("Offer is already closed");
         offer.setStatus(OfferStatus.CLOSED);
-        offerRepo.save(offer);
+        return toResponse(offerRepo.save(offer), applicationRepo.countByOfferId(offerId));
     }
 
-    public ApplicationResponse apply(UUID offerId, ApplyRequest req, UUID applicantId) {
-        Offer offer = offerRepo.findById(offerId).orElseThrow(() -> new EntityNotFoundException("Offer not found"));
-        if (offer.getStatus() != OfferStatus.OPEN) throw new BusinessRuleException("Offer is closed");
-        if (offer.getPosterId().equals(applicantId)) throw new BusinessRuleException("Cannot apply to own offer");
-        if (appRepo.existsByOfferIdAndApplicantId(offerId, applicantId)) throw new DuplicateResourceException("Already applied");
-        Application app = appRepo.save(Application.builder().offerId(offerId).applicantId(applicantId)
-                .cvUrlSnapshot(req.getCvUrlSnapshot()).message(req.getMessage()).build());
-        return toAppResponse(app);
+    @Transactional
+    public void delete(UUID offerId, UUID currentUserId) {
+        Offer offer = findOrThrow(offerId);
+        checkOwnership(offer, currentUserId);
+        applicationRepo.deleteByOfferId(offerId);
+        offerRepo.delete(offer);
     }
 
-    public List<ApplicationResponse> getApplications(UUID offerId, UUID userId) {
-        Offer offer = offerRepo.findById(offerId).orElseThrow(() -> new EntityNotFoundException("Offer not found"));
-        if (!offer.getPosterId().equals(userId)) throw new AccessDeniedException("Not authorized");
-        return appRepo.findByOfferId(offerId).stream().map(this::toAppResponse).toList();
+    private Offer findOrThrow(UUID offerId) {
+        return offerRepo.findById(offerId)
+                .orElseThrow(() -> new EntityNotFoundException("Offer not found"));
     }
 
-    public void updateApplicationStatus(UUID appId, AppStatus status, UUID userId) {
-        Application app = appRepo.findById(appId).orElseThrow(() -> new EntityNotFoundException("Application not found"));
-        Offer offer = offerRepo.findById(app.getOfferId()).orElseThrow(() -> new EntityNotFoundException("Offer not found"));
-        if (!offer.getPosterId().equals(userId)) throw new AccessDeniedException("Not authorized");
-        app.setStatus(status);
-        appRepo.save(app);
+    private void checkOwnership(Offer offer, UUID currentUserId) {
+        if (!offer.getPosterId().equals(currentUserId))
+            throw new AccessDeniedException("You do not own this offer");
     }
 
-    public boolean existsById(UUID id) { return offerRepo.existsById(id); }
-
-    private OfferResponse toResponse(Offer o) {
-        String name = getName(o.getPosterId());
-        return OfferResponse.builder().id(o.getId()).posterId(o.getPosterId()).posterName(name)
-                .type(o.getType()).title(o.getTitle()).company(o.getCompany()).city(o.getCity())
+    private OfferResponse toResponse(Offer o, long applicationCount) {
+        return OfferResponse.builder()
+                .id(o.getId()).posterId(o.getPosterId()).type(o.getType())
+                .title(o.getTitle()).company(o.getCompany()).city(o.getCity())
                 .locationType(o.getLocationType()).experienceLevel(o.getExperienceLevel())
-                .duration(o.getDuration()).description(o.getDescription()).domain(o.getDomain())
-                .deadline(o.getDeadline()).status(o.getStatus()).createdAt(o.getCreatedAt()).build();
+                .duration(o.getDuration()).description(o.getDescription())
+                .domain(o.getDomain()).deadline(o.getDeadline()).status(o.getStatus())
+                .createdAt(o.getCreatedAt()).updatedAt(o.getUpdatedAt())
+                .applicationCount(applicationCount).build();
     }
 
-    private ApplicationResponse toAppResponse(Application a) {
-        return ApplicationResponse.builder().id(a.getId()).offerId(a.getOfferId()).applicantId(a.getApplicantId())
-                .applicantName(getName(a.getApplicantId())).cvUrlSnapshot(a.getCvUrlSnapshot())
-                .message(a.getMessage()).status(a.getStatus()).appliedAt(a.getAppliedAt()).build();
-    }
-
-    private String getName(UUID userId) {
-        try { return userClient.getUserSummary(userId).getFullName(); } catch (Exception e) { return "Unknown"; }
+    private OfferSummaryResponse toSummary(Offer o) {
+        return OfferSummaryResponse.builder()
+                .id(o.getId()).posterId(o.getPosterId()).type(o.getType())
+                .title(o.getTitle()).company(o.getCompany()).city(o.getCity())
+                .locationType(o.getLocationType()).experienceLevel(o.getExperienceLevel())
+                .duration(o.getDuration()).domain(o.getDomain())
+                .deadline(o.getDeadline()).status(o.getStatus())
+                .createdAt(o.getCreatedAt()).build();
     }
 }
