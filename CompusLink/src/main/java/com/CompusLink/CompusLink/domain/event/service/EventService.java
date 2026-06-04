@@ -99,6 +99,8 @@ public class EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event", eventId));
         if (event.isCancelled()) throw new BusinessRuleException("Cet événement est annulé");
+        if (event.getEventDate().isBefore(java.time.OffsetDateTime.now()))
+            throw new BusinessRuleException("Cet événement est déjà terminé");
         if (participantRepository.existsByEventIdAndUserId(eventId, userId))
             throw new DuplicateResourceException("Vous participez déjà à cet événement");
         long count = participantRepository.countByEventId(eventId);

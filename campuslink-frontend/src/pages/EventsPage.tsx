@@ -32,6 +32,7 @@ export default function EventsPage() {
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [city, setCity] = useState("");
   const [search, setSearch] = useState("");
+  const [timeTab, setTimeTab] = useState<"upcoming" | "past">("upcoming");
 
   useEffect(() => {
     setLoading(true);
@@ -44,9 +45,11 @@ export default function EventsPage() {
       .finally(() => setLoading(false));
   }, [activeCategory, city]);
 
-  const filteredEvents = search
+  const now = new Date();
+  const filteredEvents = (search
     ? events.filter((e) => e.title.toLowerCase().includes(search.toLowerCase()) || e.city.toLowerCase().includes(search.toLowerCase()))
-    : events;
+    : events
+  ).filter((e) => timeTab === "upcoming" ? new Date(e.eventDate) >= now : new Date(e.eventDate) < now);
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
@@ -107,6 +110,16 @@ export default function EventsPage() {
         </select>
       </div>
 
+      {/* Time Tabs */}
+      <div className="flex gap-4 mb-6">
+        {[{ key: "upcoming", label: "À venir" }, { key: "past", label: "Passés" }].map((t) => (
+          <button key={t.key} onClick={() => setTimeTab(t.key as any)}
+            className={`text-sm font-medium pb-2 border-b-2 transition-colors ${timeTab === t.key ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Events Grid */}
       {loading ? (
         <div className="text-center py-20 text-gray-400">Chargement...</div>
@@ -121,7 +134,7 @@ export default function EventsPage() {
             <Link
               key={event.id}
               to={`/events/${event.id}`}
-              className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+              className={`bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow ${new Date(event.eventDate) < now ? "opacity-70" : ""}`}
             >
               {/* Cover */}
               <div className="relative h-44 bg-gray-100">
@@ -135,6 +148,12 @@ export default function EventsPage() {
                 <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full ${CATEGORY_COLORS[event.category]}`}>
                   {event.category}
                 </span>
+                {new Date(event.eventDate) < now && (
+                  <span className="absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-800/70 text-white">Terminé</span>
+                )}
+                {event.cancelled && (
+                  <span className="absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">Annulé</span>
+                )}
               </div>
 
               {/* Content */}

@@ -79,6 +79,7 @@ export default function EventDetailPage() {
 
   const isFull = event.maxParticipants !== null && event.participantCount >= event.maxParticipants;
   const isOrganizer = user?.userId === event.organizerId;
+  const isPast = new Date(event.eventDate) < new Date();
 
   return (
     <div className="max-w-4xl mx-auto px-8 py-12">
@@ -180,7 +181,11 @@ export default function EventDetailPage() {
 
             {/* Action Button */}
             {!event.cancelled && !isOrganizer && (
-              event.isParticipating ? (
+              isPast ? (
+                <p className="text-center text-gray-500 font-medium py-3 flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">event_busy</span> Événement terminé
+                </p>
+              ) : event.isParticipating ? (
                 <button onClick={handleLeave} disabled={actionLoading}
                   className="w-full border border-red-200 text-red-600 py-3 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors disabled:opacity-50">
                   {actionLoading ? "..." : "Se désinscrire"}
