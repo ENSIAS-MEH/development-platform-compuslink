@@ -87,6 +87,7 @@ export default function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({ fullName: "", university: "", city: "", phoneNumber: "", bio: "" });
   const [saving, setSaving] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
   const picInputRef = useRef<HTMLInputElement>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,9 +106,14 @@ export default function ProfilePage() {
   };
 
   const deleteCv = async (id: string) => {
-    if (!confirm("Supprimer ce CV ?")) return;
-    await api.delete(`/me/profile/cvs/${id}`);
-    setCvs((prev) => prev.filter((cv) => cv.id !== id));
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer ce CV ?",
+      onConfirm: async () => {
+        await api.delete(`/me/profile/cvs/${id}`);
+        setCvs((prev) => prev.filter((cv) => cv.id !== id));
+        setConfirmModal(null);
+      },
+    });
   };
 
   useEffect(() => {
@@ -149,27 +155,47 @@ export default function ProfilePage() {
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm("Supprimer cette annonce ?")) return;
-    await api.delete(`/marketplace/items/${id}`);
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer cette annonce ?",
+      onConfirm: async () => {
+        await api.delete(`/marketplace/items/${id}`);
+        setItems((prev) => prev.filter((i) => i.id !== id));
+        setConfirmModal(null);
+      },
+    });
   };
 
   const deleteColoc = async (id: string) => {
-    if (!confirm("Supprimer cette colocation ?")) return;
-    await api.delete(`/colocations/${id}`);
-    setColocPosts((prev) => prev.filter((p) => p.id !== id));
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer cette colocation ?",
+      onConfirm: async () => {
+        await api.delete(`/colocations/${id}`);
+        setColocPosts((prev) => prev.filter((p) => p.id !== id));
+        setConfirmModal(null);
+      },
+    });
   };
 
   const deleteEvent = async (id: string) => {
-    if (!confirm("Supprimer cet événement ?")) return;
-    await api.delete(`/events/${id}`);
-    setMyEvents((prev) => prev.filter((e) => e.id !== id));
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer cet événement ?",
+      onConfirm: async () => {
+        await api.delete(`/events/${id}`);
+        setMyEvents((prev) => prev.filter((e) => e.id !== id));
+        setConfirmModal(null);
+      },
+    });
   };
 
   const deleteSaved = async (targetType: string, targetId: string) => {
-    if (!confirm("Retirer des favoris ?")) return;
-    await api.delete(`/saved/${targetType}/${targetId}`);
-    setSavedItems((prev) => prev.filter((s) => !(s.targetType === targetType && s.targetId === targetId)));
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir retirer ce favori ?",
+      onConfirm: async () => {
+        await api.delete(`/saved/${targetType}/${targetId}`);
+        setSavedItems((prev) => prev.filter((s) => !(s.targetType === targetType && s.targetId === targetId)));
+        setConfirmModal(null);
+      },
+    });
   };
 
   if (loading) return <div className="flex justify-center items-center h-64 text-gray-400">Loading...</div>;
@@ -535,6 +561,23 @@ export default function ProfilePage() {
               <button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50">
                 {saving ? "Enregistrement..." : "Enregistrer"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center space-y-4">
+            <div className="w-14 h-14 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+              <span className="material-symbols-outlined text-red-500 text-2xl">warning</span>
+            </div>
+            <h3 className="text-lg font-bold font-[Geist]">Confirmation</h3>
+            <p className="text-sm text-gray-600">{confirmModal.message}</p>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setConfirmModal(null)} className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">Annuler</button>
+              <button onClick={confirmModal.onConfirm} className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors">Supprimer</button>
             </div>
           </div>
         </div>
