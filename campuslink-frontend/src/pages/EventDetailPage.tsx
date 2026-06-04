@@ -38,12 +38,20 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [participants, setParticipants] = useState<{ id: string; userId: string; fullName: string; email: string; profilePicUrl: string | null; joinedAt: string }[]>([]);
 
   useEffect(() => {
     api.get(`/events/${id}`)
       .then(({ data }) => setEvent(data))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (event && user && event.organizerId === user.userId) {
+      api.get(`/events/${id}/participants`).then(({ data }) => setParticipants(data)).catch(() => {});
+    }
+  }, [event?.organizerId, user, id]);
 
   const handleJoin = async () => {
     if (!user) { navigate("/auth"); return; }
@@ -103,6 +111,35 @@ export default function EventDetailPage() {
             <h3 className="font-semibold mb-3">Description</h3>
             <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{event.description}</p>
           </div>
+
+          {/* Participants list for organizer */}
+          {isOrganizer && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <h3 className="font-semibold mb-4">Participants ({participants.length})</h3>
+              {participants.length === 0 ? (
+                <p className="text-sm text-gray-400">Aucun participant pour le moment.</p>
+              ) : (
+                <div className="space-y-3">
+                  {participants.map((p) => (
+                    <div key={p.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      {p.profilePicUrl ? (
+                        <img src={p.profilePicUrl} className="w-9 h-9 rounded-full object-cover" alt="" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                          {(p.fullName || p.email || "?")[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{p.fullName || "Sans nom"}</p>
+                        <p className="text-xs text-gray-500 truncate">{p.email}</p>
+                      </div>
+                      <p className="text-xs text-gray-400 shrink-0">{new Date(p.joinedAt).toLocaleDateString("fr-FR")}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -159,9 +196,33 @@ export default function EventDetailPage() {
             {isOrganizer && (
               <p className="text-xs text-center text-gray-400">Vous organisez cet événement</p>
             )}
+
+            {isOrganizer && !event.cancelled && (
+              <button onClick={() => setShowCancelModal(true)}
+                className="w-full border border-red-200 text-red-600 py-3 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors">
+                Annuler l'événement
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Cancel Event Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowCancelModal(false)}>
+          <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="w-14 h-14 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+              <span className="material-symbols-outlined text-red-500 text-2xl">warning</span>
+            </div>
+            <h3 className="text-lg font-bold font-[Geist]">Annuler cet événement ?</h3>
+            <p className="text-sm text-gray-600">Les participants seront informés que l'événement est annulé. Cette action est irréversible.</p>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setShowCancelModal(false)} className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">Non, garder</button>
+              <button onClick={async () => { const { data } = await api.patch(`/events/${id}/cancel`); setEvent(data); setShowCancelModal(false); }} className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors">Oui, annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

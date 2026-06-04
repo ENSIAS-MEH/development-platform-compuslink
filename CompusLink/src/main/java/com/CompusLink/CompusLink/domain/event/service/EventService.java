@@ -34,6 +34,17 @@ public class EventService {
         eventRepository.delete(event);
     }
 
+    public EventResponse cancelEvent(UUID eventId, UUID userId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event", eventId));
+        if (!event.getOrganizerId().equals(userId))
+            throw new com.CompusLink.CompusLink.exception.AccessDeniedException("Non autorisé");
+        if (event.isCancelled())
+            throw new BusinessRuleException("Cet événement est déjà annulé");
+        event.setCancelled(true);
+        return toResponse(eventRepository.save(event), userId);
+    }
+
     public List<EventResponse> getMyParticipations(UUID userId) {
         return participantRepository.findByUserId(userId).stream()
                 .map(p -> eventRepository.findById(p.getEventId()))
@@ -108,6 +119,27 @@ public class EventService {
     public List<EventResponse> getMyEvents(UUID userId) {
         return eventRepository.findByOrganizerId(userId).stream()
                 .map(e -> toResponse(e, userId))
+                .collect(Collectors.toList());
+    }
+
+    public java.util.List<java.util.Map<String, Object>> getParticipants(UUID eventId, UUID userId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event", eventId));
+        if (!event.getOrganizerId().equals(userId))
+            throw new com.CompusLink.CompusLink.exception.AccessDeniedException("Non autorisé");
+        return participantRepository.findByEventId(eventId).stream()
+                .map(p -> {
+                    java.util.Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("id", p.getId());
+                    map.put("joinedAt", p.getJoinedAt());
+                    userRepository.findById(p.getUserId()).ifPresent(u -> {
+                        map.put("userId", u.getId());
+                        map.put("fullName", u.getFullName());
+                        map.put("email", u.getEmail());
+                        map.put("profilePicUrl", u.getProfilePicUrl());
+                    });
+                    return map;
+                })
                 .collect(Collectors.toList());
     }
 
