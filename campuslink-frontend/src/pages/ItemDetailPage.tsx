@@ -56,7 +56,7 @@ export default function ItemDetailPage() {
     if (!id) return;
 
     api
-      .get<Item>(`/marketplace/items/${id}`)
+      .get<Item>(`/items/${id}`)
       .then(({ data }) => {
         setItem(data);
         // Check if item is saved (only if user is logged in)
@@ -83,7 +83,7 @@ export default function ItemDetailPage() {
     setSavingItem(true);
     try {
       if (saved) {
-        await api.delete(`/saved/ITEM/${item.id}`);
+        await api.delete(`/saved?targetType=ITEM&targetId=${item.id}`);
         setSaved(false);
       } else {
         await api.post(`/saved`, { targetType: "ITEM", targetId: item.id });

@@ -69,7 +69,7 @@ export default function CreateItemPage() {
         data.append("images", img);
       });
 
-      await api.post("/marketplace/items", data, {
+      await api.post("/items", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

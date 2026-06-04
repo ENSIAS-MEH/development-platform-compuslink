@@ -51,6 +51,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/compuslink_marketplace
       DB_USERNAME: mourad
       DB_PASSWORD: ""
+      JWT_SECRET: your256bitsecretheyforjwtsigningpurposesexactly
       EUREKA_URI: http://eureka-server:8761/eureka/
     depends_on:
       postgres: { condition: service_healthy }
@@ -64,6 +65,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/compuslink_colocation
       DB_USERNAME: mourad
       DB_PASSWORD: ""
+      JWT_SECRET: your256bitsecretheyforjwtsigningpurposesexactly
       EUREKA_URI: http://eureka-server:8761/eureka/
     depends_on:
       postgres: { condition: service_healthy }
@@ -77,6 +79,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/compuslink_offers
       DB_USERNAME: mourad
       DB_PASSWORD: ""
+      JWT_SECRET: your256bitsecretheyforjwtsigningpurposesexactly
       EUREKA_URI: http://eureka-server:8761/eureka/
     depends_on:
       postgres: { condition: service_healthy }
@@ -90,6 +93,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/compuslink_events
       DB_USERNAME: mourad
       DB_PASSWORD: ""
+      JWT_SECRET: your256bitsecretheyforjwtsigningpurposesexactly
       EUREKA_URI: http://eureka-server:8761/eureka/
     depends_on:
       postgres: { condition: service_healthy }
@@ -103,6 +107,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/compuslink_messaging
       DB_USERNAME: mourad
       DB_PASSWORD: ""
+      JWT_SECRET: your256bitsecretheyforjwtsigningpurposesexactly
       EUREKA_URI: http://eureka-server:8761/eureka/
     depends_on:
       postgres: { condition: service_healthy }
@@ -116,6 +121,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/compuslink_common
       DB_USERNAME: mourad
       DB_PASSWORD: ""
+      JWT_SECRET: your256bitsecretheyforjwtsigningpurposesexactly
       EUREKA_URI: http://eureka-server:8761/eureka/
     depends_on:
       postgres: { condition: service_healthy }

@@ -89,7 +89,7 @@ export default function MessagingPage() {
   const fetchConversations = async (isInitialLoad = false) => {
     try {
       if (isInitialLoad) setLoading(true);
-      const response = await api.get("/messages/conversations");
+      const response = await api.get("/conversations");
       setConversations(response.data);
 
       if (locationState?.sellerId && !selectedConversation) {
@@ -113,7 +113,7 @@ export default function MessagingPage() {
 
   const fetchMessages = async (conversationId: string) => {
     try {
-      const response = await api.get(`/messages/conversations/${conversationId}`);
+      const response = await api.get(`/conversations/${conversationId}/messages`);
       const newMessages = response.data;
 
       // Check if there are new messages
@@ -131,7 +131,7 @@ export default function MessagingPage() {
 
   const sendInitialMessage = async (message: string, recipientId: string) => {
     try {
-      await api.post(`/messages/send/${recipientId}`, {
+      await api.post(`/messages/${recipientId}`, {
         content: message,
       });
       // Refresh conversations to include the newly created one
@@ -147,7 +147,7 @@ export default function MessagingPage() {
 
     setSendingMessage(true);
     try {
-      const response = await api.post(`/messages/send/${selectedConversation.otherUserId}`, {
+      const response = await api.post(`/messages/${selectedConversation.otherUserId}`, {
         content: messageInput,
       });
       setMessages([...messages, response.data]);

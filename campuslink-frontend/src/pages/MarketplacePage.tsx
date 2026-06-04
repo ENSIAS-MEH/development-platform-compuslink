@@ -54,24 +54,22 @@ export default function MarketplacePage() {
       setLoading(true);
       try {
         if (showSavedOnly) {
+          // common-service only returns the saved targetId, so fetch each item's details
           const response = await api.get(`/saved?targetType=ITEM`);
-          const savedItems = response.data.map((save: any) => ({
-            id: save.targetId,
-            title: save.title,
-            price: save.price,
-            city: save.city,
-            category: save.category,
-            condition: save.condition,
-            coverImageUrl: save.coverImageUrl
-          }));
-          setItems(savedItems);
+          const saved = response.data as Array<{ targetId: string }>;
+          const items = await Promise.all(
+            saved.map((s) =>
+              api.get<ItemCard>(`/items/${s.targetId}`).then((r) => r.data).catch(() => null)
+            )
+          );
+          setItems(items.filter((i): i is ItemCard => i !== null));
         } else {
           const params = new URLSearchParams();
           if (search) params.append("search", search);
           if (city) params.append("city", city);
           if (category) params.append("category", category);
 
-          const response = await api.get<PaginatedResponse>(`/marketplace/items?${params}`);
+          const response = await api.get<PaginatedResponse>(`/items?${params}`);
           setItems(response.data.content || response.data);
         }
       } catch (err) {

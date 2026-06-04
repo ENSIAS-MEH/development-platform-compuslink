@@ -20,7 +20,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     // Public endpoints that don't require authentication
     private static final List<String> OPEN_PATHS = List.of(
             "/api/auth/login", "/api/auth/register", "/api/auth/refresh",
-            "/api/auth/oauth2", "/oauth2"
+            "/api/auth/oauth2", "/oauth2", "/uploads"
     );
 
     public JwtAuthFilter(JwtUtil jwtUtil) {
@@ -30,30 +30,40 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
+        String method = exchange.getRequest().getMethod().name();
 
-        if (OPEN_PATHS.stream().anyMatch(path::startsWith)) {
+        // If a valid token is present, always authenticate and forward the user id,
+        // even on public paths (so the downstream can personalize when logged in).
+        String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            if (jwtUtil.isTokenValid(token)) {
+                String userId = jwtUtil.extractUserId(token).toString();
+                ServerWebExchange mutated = exchange.mutate()
+                        .request(r -> r.header("X-User-Id", userId))
+                        .build();
+                return chain.filter(mutated);
+            }
+        }
+
+        // No valid token: allow only public paths through.
+        if (isPublic(path, method)) {
             return chain.filter(exchange);
         }
 
-        String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        return exchange.getResponse().setComplete();
+    }
+
+    private boolean isPublic(String path, String method) {
+        if (OPEN_PATHS.stream().anyMatch(path::startsWith)) {
+            return true;
         }
-
-        String token = authHeader.substring(7);
-        if (!jwtUtil.isTokenValid(token)) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
+        // Public marketplace browsing: list and single-item detail (GET only).
+        if ("GET".equals(method) && (path.equals("/api/items") || path.matches("/api/items/[^/]+"))) {
+            return true;
         }
-
-        // Pass userId as header to downstream services
-        String userId = jwtUtil.extractUserId(token).toString();
-        exchange = exchange.mutate()
-                .request(r -> r.header("X-User-Id", userId))
-                .build();
-
-        return chain.filter(exchange);
+        return false;
     }
 
     @Override
