@@ -33,6 +33,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(req -> req
                 .requestMatchers("/api/auth/**", "/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/api/users/*/public").permitAll()
+                .requestMatchers("/user-uploads/**").permitAll()
                 .requestMatchers("/internal/**").permitAll()
                 .anyRequest().authenticated())
             .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2SuccessHandler))

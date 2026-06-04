@@ -24,12 +24,31 @@ public class UserService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepo;
     private final JWTService jwtService;
+    private final UserFileStorageService fileStorage;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
-    public UserService(AuthenticationManager authenticationManager, UserRepository userRepo, JWTService jwtService) {
+    public UserService(AuthenticationManager authenticationManager, UserRepository userRepo,
+                       JWTService jwtService, UserFileStorageService fileStorage) {
         this.authenticationManager = authenticationManager;
         this.userRepo = userRepo;
         this.jwtService = jwtService;
+        this.fileStorage = fileStorage;
+    }
+
+    public UserProfileResponse updateProfilePicture(UUID userId, org.springframework.web.multipart.MultipartFile file) {
+        Users user = userRepo.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        fileStorage.delete(user.getProfilePicUrl());
+        user.setProfilePicUrl(fileStorage.store(file));
+        return toProfileResponse(userRepo.save(user));
+    }
+
+    public UserProfileResponse deleteProfilePicture(UUID userId) {
+        Users user = userRepo.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        fileStorage.delete(user.getProfilePicUrl());
+        user.setProfilePicUrl(null);
+        return toProfileResponse(userRepo.save(user));
     }
 
     public AuthResponse register(RegisterRequest request) {

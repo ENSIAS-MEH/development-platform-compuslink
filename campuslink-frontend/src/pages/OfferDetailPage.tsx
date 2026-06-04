@@ -110,7 +110,8 @@ export default function OfferDetailPage() {
     if (!selectedCvId && !cvUrl) { alert("Veuillez d'abord uploader un CV."); return; }
     setApplying(true);
     try {
-      await api.post(`/offers/${id}/applications`, { message: message || undefined, cvId: selectedCvId || undefined });
+      const selectedCvUrl = userCvs.find((cv) => cv.id === selectedCvId)?.fileUrl || cvUrl || undefined;
+      await api.post(`/offers/${id}/applications`, { message: message || undefined, cvId: selectedCvId || undefined, cvUrl: selectedCvUrl });
       setApplied(true);
       setShowApply(false);
     } catch (err: any) {

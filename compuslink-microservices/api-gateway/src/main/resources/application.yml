@@ -13,6 +13,10 @@ spring:
               uri: lb://user-service
               predicates:
                 - Path=/api/auth/**,/api/users/**,/api/me/**
+            - id: user-uploads
+              uri: lb://user-service
+              predicates:
+                - Path=/user-uploads/**
             - id: marketplace-service
               uri: lb://marketplace-service
               predicates:
