@@ -1,56 +1,61 @@
 package com.compuslink.offer.controller;
 
 import com.compuslink.offer.dto.*;
-import com.compuslink.offer.model.AppStatus;
-import com.compuslink.offer.model.OfferType;
+import com.compuslink.offer.model.*;
 import com.compuslink.offer.service.OfferService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.UUID;
 
-@RestController @RequiredArgsConstructor
+@RestController
+@RequestMapping("/api/offers")
+@RequiredArgsConstructor
 public class OfferController {
 
-    private final OfferService service;
+    private final OfferService offerService;
 
-    @PostMapping("/api/offers")
-    public ResponseEntity<OfferResponse> create(@Valid @RequestBody CreateOfferRequest req, @RequestHeader("X-User-Id") UUID userId) {
-        return new ResponseEntity<>(service.createOffer(req, userId), HttpStatus.CREATED);
+    @PostMapping
+    public ResponseEntity<OfferResponse> create(@Valid @RequestBody CreateOfferRequest request,
+                                                @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(offerService.create(request, userId));
     }
 
-    @GetMapping("/api/offers")
-    public List<OfferResponse> browse(@RequestParam(required = false) OfferType type) { return service.browseOffers(type); }
-
-    @GetMapping("/api/offers/{id}")
-    public OfferResponse get(@PathVariable UUID id) { return service.getOffer(id); }
-
-    @GetMapping("/api/offers/mine")
-    public List<OfferResponse> mine(@RequestHeader("X-User-Id") UUID userId) { return service.getMyOffers(userId); }
-
-    @PatchMapping("/api/offers/{id}/close")
-    public ResponseEntity<Void> close(@PathVariable UUID id, @RequestHeader("X-User-Id") UUID userId) {
-        service.closeOffer(id, userId); return ResponseEntity.noContent().build();
+    @GetMapping
+    public Page<OfferSummaryResponse> list(@RequestParam(required = false) OfferType type,
+                                           @RequestParam(required = false) String city,
+                                           @RequestParam(required = false) String domain,
+                                           @RequestParam(required = false) LocationType locationType,
+                                           @RequestParam(required = false) OfferStatus status,
+                                           @RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "20") int size) {
+        return offerService.list(type, city, domain, locationType, status, page, size);
     }
 
-    @PostMapping("/api/offers/{id}/apply")
-    public ResponseEntity<ApplicationResponse> apply(@PathVariable UUID id, @RequestBody ApplyRequest req, @RequestHeader("X-User-Id") UUID userId) {
-        return new ResponseEntity<>(service.apply(id, req, userId), HttpStatus.CREATED);
+    @GetMapping("/my-offers")
+    public List<OfferSummaryResponse> getMyOffers(@RequestHeader("X-User-Id") UUID userId) {
+        return offerService.getMyOffers(userId);
     }
 
-    @GetMapping("/api/offers/{id}/applications")
-    public List<ApplicationResponse> applications(@PathVariable UUID id, @RequestHeader("X-User-Id") UUID userId) {
-        return service.getApplications(id, userId);
+    @GetMapping("/{id}")
+    public OfferResponse getById(@PathVariable UUID id,
+                                 @RequestHeader(value = "X-User-Id", required = false) UUID userId) {
+        return offerService.getById(id, userId);
     }
 
-    @PatchMapping("/api/applications/{id}/status")
-    public ResponseEntity<Void> updateStatus(@PathVariable UUID id, @RequestParam AppStatus status, @RequestHeader("X-User-Id") UUID userId) {
-        service.updateApplicationStatus(id, status, userId); return ResponseEntity.noContent().build();
+    @PatchMapping("/{id}/close")
+    public OfferResponse close(@PathVariable UUID id, @RequestHeader("X-User-Id") UUID userId) {
+        return offerService.close(id, userId);
     }
 
-    @GetMapping("/internal/offers/{id}/exists")
-    public boolean exists(@PathVariable UUID id) { return service.existsById(id); }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id, @RequestHeader("X-User-Id") UUID userId) {
+        offerService.delete(id, userId);
+        return ResponseEntity.noContent().build();
+    }
 }

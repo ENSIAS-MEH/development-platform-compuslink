@@ -1,61 +1,136 @@
 package com.compuslink.event.service;
 
 import com.compuslink.common.exception.*;
-import com.compuslink.event.client.UserClient;
 import com.compuslink.event.dto.*;
 import com.compuslink.event.model.*;
-import com.compuslink.event.repository.*;
-import jakarta.transaction.Transactional;
+import com.compuslink.event.repository.EventParticipantRepository;
+import com.compuslink.event.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.util.List;
-import java.util.UUID;
 
-@Service @RequiredArgsConstructor @Transactional
+import java.time.OffsetDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
 public class EventService {
-    private final EventRepository eventRepo;
-    private final EventParticipantRepository participantRepo;
-    private final UserClient userClient;
 
-    public EventResponse createEvent(CreateEventRequest req, UUID organizerId) {
-        Event event = eventRepo.save(Event.builder().organizerId(organizerId).title(req.getTitle())
-                .description(req.getDescription()).location(req.getLocation()).city(req.getCity())
-                .eventDate(req.getEventDate()).category(req.getCategory())
-                .maxParticipants(req.getMaxParticipants()).coverUrl(req.getCoverUrl()).build());
-        return toResponse(event);
+    private final EventRepository eventRepository;
+    private final EventParticipantRepository participantRepository;
+
+    public EventResponse createEvent(CreateEventRequest request, UUID organizerId) {
+        Event event = Event.builder()
+                .organizerId(organizerId)
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .location(request.getLocation())
+                .city(request.getCity())
+                .eventDate(request.getEventDate())
+                .category(request.getCategory())
+                .maxParticipants(request.getMaxParticipants())
+                .coverUrl(request.getCoverUrl())
+                .build();
+        return toResponse(eventRepository.save(event), organizerId);
     }
 
-    public List<EventResponse> getAllEvents() { return eventRepo.findAll().stream().map(this::toResponse).toList(); }
-    public EventResponse getEvent(UUID id) { return toResponse(eventRepo.findById(id).orElseThrow(() -> new EntityNotFoundException("Event not found"))); }
-    public List<EventResponse> getMyEvents(UUID organizerId) { return eventRepo.findByOrganizerId(organizerId).stream().map(this::toResponse).toList(); }
-
-    public void cancelEvent(UUID id, UUID userId) {
-        Event event = eventRepo.findById(id).orElseThrow(() -> new EntityNotFoundException("Event not found"));
-        if (!event.getOrganizerId().equals(userId)) throw new AccessDeniedException("Not authorized");
-        event.setCancelled(true); eventRepo.save(event);
+    public List<EventResponse> browseEvents(EventCategory category, String city, UUID currentUserId) {
+        List<Event> events;
+        if (category != null) events = eventRepository.findByCategoryAndCancelledFalse(category);
+        else if (city != null) events = eventRepository.findByCityIgnoreCaseAndCancelledFalse(city);
+        else events = eventRepository.findByCancelledFalseOrderByEventDateAsc();
+        return events.stream().map(e -> toResponse(e, currentUserId)).collect(Collectors.toList());
     }
 
-    public void joinEvent(UUID eventId, UUID userId) {
-        Event event = eventRepo.findById(eventId).orElseThrow(() -> new EntityNotFoundException("Event not found"));
-        if (event.isCancelled()) throw new BusinessRuleException("Event is cancelled");
-        if (participantRepo.existsByEventIdAndUserId(eventId, userId)) throw new DuplicateResourceException("Already joined");
-        if (event.getMaxParticipants() != null && participantRepo.countByEventId(eventId) >= event.getMaxParticipants())
-            throw new BusinessRuleException("Event is full");
-        participantRepo.save(EventParticipant.builder().eventId(eventId).userId(userId).build());
+    public EventResponse getEvent(UUID id, UUID currentUserId) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        return toResponse(event, currentUserId);
     }
 
-    public void leaveEvent(UUID eventId, UUID userId) {
-        if (!participantRepo.existsByEventIdAndUserId(eventId, userId)) throw new EntityNotFoundException("Not a participant");
-        participantRepo.deleteByEventIdAndUserId(eventId, userId);
+    public EventResponse join(UUID eventId, UUID userId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        if (event.isCancelled()) throw new BusinessRuleException("Cet événement est annulé");
+        if (event.getEventDate().isBefore(OffsetDateTime.now()))
+            throw new BusinessRuleException("Cet événement est déjà terminé");
+        if (participantRepository.existsByEventIdAndUserId(eventId, userId))
+            throw new DuplicateResourceException("Vous participez déjà à cet événement");
+        long count = participantRepository.countByEventId(eventId);
+        if (event.getMaxParticipants() != null && count >= event.getMaxParticipants())
+            throw new BusinessRuleException("L'événement est complet");
+        participantRepository.save(EventParticipant.builder().eventId(eventId).userId(userId).build());
+        return toResponse(event, userId);
     }
 
-    private EventResponse toResponse(Event e) {
-        String name; try { name = userClient.getUserSummary(e.getOrganizerId()).getFullName(); } catch (Exception ex) { name = "Unknown"; }
-        return EventResponse.builder().id(e.getId()).organizerId(e.getOrganizerId()).organizerName(name)
-                .title(e.getTitle()).description(e.getDescription()).location(e.getLocation())
-                .city(e.getCity()).eventDate(e.getEventDate()).category(e.getCategory())
-                .maxParticipants(e.getMaxParticipants()).coverUrl(e.getCoverUrl())
-                .cancelled(e.isCancelled()).participantCount(participantRepo.countByEventId(e.getId()))
-                .createdAt(e.getCreatedAt()).build();
+    public EventResponse leave(UUID eventId, UUID userId) {
+        EventParticipant p = participantRepository.findByEventIdAndUserId(eventId, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Participation non trouvée"));
+        participantRepository.delete(p);
+        Event event = eventRepository.findById(eventId).orElseThrow();
+        return toResponse(event, userId);
+    }
+
+    public EventResponse cancelEvent(UUID eventId, UUID userId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        if (!event.getOrganizerId().equals(userId))
+            throw new AccessDeniedException("Non autorisé");
+        if (event.isCancelled())
+            throw new BusinessRuleException("Cet événement est déjà annulé");
+        event.setCancelled(true);
+        return toResponse(eventRepository.save(event), userId);
+    }
+
+    public void deleteEvent(UUID eventId, UUID userId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        if (!event.getOrganizerId().equals(userId))
+            throw new AccessDeniedException("Non autorisé");
+        eventRepository.delete(event);
+    }
+
+    public List<EventResponse> getMyEvents(UUID userId) {
+        return eventRepository.findByOrganizerId(userId).stream()
+                .map(e -> toResponse(e, userId)).collect(Collectors.toList());
+    }
+
+    public List<EventResponse> getMyParticipations(UUID userId) {
+        return participantRepository.findByUserId(userId).stream()
+                .map(p -> eventRepository.findById(p.getEventId()))
+                .filter(Optional::isPresent)
+                .map(opt -> toResponse(opt.get(), userId))
+                .collect(Collectors.toList());
+    }
+
+    public List<Map<String, Object>> getParticipants(UUID eventId, UUID userId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        if (!event.getOrganizerId().equals(userId))
+            throw new AccessDeniedException("Non autorisé");
+        return participantRepository.findByEventId(eventId).stream()
+                .map(p -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", p.getId());
+                    map.put("userId", p.getUserId());
+                    map.put("joinedAt", p.getJoinedAt());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private EventResponse toResponse(Event event, UUID currentUserId) {
+        long count = participantRepository.countByEventId(event.getId());
+        boolean participating = currentUserId != null
+                && participantRepository.existsByEventIdAndUserId(event.getId(), currentUserId);
+        return EventResponse.builder()
+                .id(event.getId()).organizerId(event.getOrganizerId())
+                .title(event.getTitle()).description(event.getDescription())
+                .location(event.getLocation()).city(event.getCity())
+                .eventDate(event.getEventDate()).category(event.getCategory())
+                .maxParticipants(event.getMaxParticipants())
+                .participantCount(count).isParticipating(participating)
+                .coverUrl(event.getCoverUrl()).cancelled(event.isCancelled())
+                .createdAt(event.getCreatedAt()).build();
     }
 }
