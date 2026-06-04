@@ -56,6 +56,10 @@ public class ColocPostService {
     public void deletePost(UUID id, UUID userId) {
         ColocPost post = postRepo.findById(id).orElseThrow(() -> new EntityNotFoundException("Post not found"));
         if (!post.getPosterId().equals(userId)) throw new AccessDeniedException("Not authorized");
+        // Remove children first (no DB cascade configured) to avoid FK violations.
+        imageRepo.deleteByPostId(id);
+        amenityRepo.deleteByPostId(id);
+        interestRepo.deleteByPostId(id);
         postRepo.delete(post);
     }
 

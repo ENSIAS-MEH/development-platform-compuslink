@@ -25,6 +25,10 @@ spring:
               uri: lb://colocation-service
               predicates:
                 - Path=/api/coloc/**
+            - id: colocation-uploads
+              uri: lb://colocation-service
+              predicates:
+                - Path=/coloc-uploads/**
             - id: offer-service
               uri: lb://offer-service
               predicates:

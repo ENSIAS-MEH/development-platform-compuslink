@@ -11,4 +11,5 @@ public interface ColocImageRepository extends JpaRepository<ColocImage, UUID> {
     @Query("SELECT i FROM ColocImage i WHERE i.post = :post ORDER BY i.isCover DESC, i.sortOrder ASC")
     List<ColocImage> findByPostOrderByPriority(ColocPost post);
     long countByPostId(UUID postId);
+    void deleteByPostId(UUID postId);
 }

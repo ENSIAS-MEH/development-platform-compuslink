@@ -9,4 +9,5 @@ public interface ColocInterestRepository extends JpaRepository<ColocInterest, UU
     boolean existsByPostIdAndUserId(UUID postId, UUID userId);
     long countByPostId(UUID postId);
     long countByPostIdAndStatus(UUID postId, InterestStatus status);
+    void deleteByPostId(UUID postId);
 }

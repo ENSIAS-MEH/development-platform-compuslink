@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface ColocAmenityRepository extends JpaRepository<ColocAmenity, UUID> {
     List<ColocAmenity> findByPost(ColocPost post);
+    void deleteByPostId(UUID postId);
 }
