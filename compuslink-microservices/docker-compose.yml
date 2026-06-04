@@ -1,0 +1,136 @@
+services:
+
+  # --- Infrastructure ---
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mourad
+      POSTGRES_PASSWORD: ""
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mourad"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  eureka-server:
+    build: ./eureka-server
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Microservices ---
+  user-service:
+    build: ./user-service
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/compuslink_users
+      DB_USERNAME: mourad
+      DB_PASSWORD: ""
+      JWT_SECRET: your256bitsecretheyforjwtsigningpurposesexactly
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      postgres: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  marketplace-service:
+    build: ./marketplace-service
+    ports:
+      - "8082:8082"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/compuslink_marketplace
+      DB_USERNAME: mourad
+      DB_PASSWORD: ""
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      postgres: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  colocation-service:
+    build: ./colocation-service
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/compuslink_colocation
+      DB_USERNAME: mourad
+      DB_PASSWORD: ""
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      postgres: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  offer-service:
+    build: ./offer-service
+    ports:
+      - "8084:8084"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/compuslink_offers
+      DB_USERNAME: mourad
+      DB_PASSWORD: ""
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      postgres: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  event-service:
+    build: ./event-service
+    ports:
+      - "8085:8085"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/compuslink_events
+      DB_USERNAME: mourad
+      DB_PASSWORD: ""
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      postgres: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  messaging-service:
+    build: ./messaging-service
+    ports:
+      - "8086:8086"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/compuslink_messaging
+      DB_USERNAME: mourad
+      DB_PASSWORD: ""
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      postgres: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  common-service:
+    build: ./common-service
+    ports:
+      - "8087:8087"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/compuslink_common
+      DB_USERNAME: mourad
+      DB_PASSWORD: ""
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      postgres: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      JWT_SECRET: your256bitsecretheyforjwtsigningpurposesexactly
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      FRONTEND_URL: http://localhost:5173
+    depends_on:
+      eureka-server: { condition: service_healthy }
+
+volumes:
+  pgdata:
