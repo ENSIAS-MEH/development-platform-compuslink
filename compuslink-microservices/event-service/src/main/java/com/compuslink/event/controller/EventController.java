@@ -39,6 +39,13 @@ public class EventController {
         return eventService.getEvent(id, userId);
     }
 
+    @PostMapping(value = "/{id}/cover", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public EventResponse uploadCover(@PathVariable UUID id,
+                                     @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+                                     @RequestHeader("X-User-Id") UUID userId) {
+        return eventService.setCover(id, file, userId);
+    }
+
     @PostMapping("/{id}/join")
     public EventResponse join(@PathVariable UUID id, @RequestHeader("X-User-Id") UUID userId) {
         return eventService.join(id, userId);
