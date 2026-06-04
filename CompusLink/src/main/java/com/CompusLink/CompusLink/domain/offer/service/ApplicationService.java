@@ -9,7 +9,9 @@ import com.CompusLink.CompusLink.domain.offer.model.Offer;
 import com.CompusLink.CompusLink.domain.offer.model.OfferStatus;
 import com.CompusLink.CompusLink.domain.offer.repository.ApplicationRepository;
 import com.CompusLink.CompusLink.domain.offer.repository.OfferRepository;
+import com.CompusLink.CompusLink.domain.user.model.UserCv;
 import com.CompusLink.CompusLink.domain.user.model.Users;
+import com.CompusLink.CompusLink.domain.user.repository.UserCvRepository;
 import com.CompusLink.CompusLink.domain.user.repository.UserRepository;
 import com.CompusLink.CompusLink.exception.AccessDeniedException;
 import com.CompusLink.CompusLink.exception.BusinessRuleException;
@@ -27,13 +29,16 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepo;
     private final OfferRepository offerRepo;
     private final UserRepository userRepo;
+    private final UserCvRepository userCvRepository;
 
     public ApplicationService(ApplicationRepository applicationRepo,
                               OfferRepository offerRepo,
-                              UserRepository userRepo) {
+                              UserRepository userRepo,
+                              UserCvRepository userCvRepository) {
         this.applicationRepo = applicationRepo;
         this.offerRepo = offerRepo;
         this.userRepo = userRepo;
+        this.userCvRepository = userCvRepository;
     }
 
     public ApplicationResponse apply(UUID offerId, ApplyRequest request, UUID applicantId) {
@@ -52,17 +57,29 @@ public class ApplicationService {
             throw new DuplicateResourceException("You have already applied to this offer");
         }
 
-        Users applicant = userRepo.findById(applicantId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        // Resolve CV URL: prefer cvId from request, fallback to user's legacy cvUrl
+        String cvUrl;
+        if (request.getCvId() != null) {
+            UserCv cv = userCvRepository.findById(request.getCvId())
+                    .orElseThrow(() -> new EntityNotFoundException("CV not found"));
+            if (!cv.getUserId().equals(applicantId)) {
+                throw new AccessDeniedException("This CV does not belong to you");
+            }
+            cvUrl = cv.getFileUrl();
+        } else {
+            Users applicant = userRepo.findById(applicantId)
+                    .orElseThrow(() -> new EntityNotFoundException("User not found"));
+            cvUrl = applicant.getCvUrl();
+        }
 
-        if (applicant.getCvUrl() == null || applicant.getCvUrl().isBlank()) {
+        if (cvUrl == null || cvUrl.isBlank()) {
             throw new BusinessRuleException("Please upload a CV to your profile before applying");
         }
 
         Application application = Application.builder()
                 .offerId(offerId)
                 .applicantId(applicantId)
-                .cvUrlSnapshot(applicant.getCvUrl())
+                .cvUrlSnapshot(cvUrl)
                 .message(request.getMessage())
                 .build();
 

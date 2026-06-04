@@ -58,6 +58,12 @@ public class OfferService {
                 .map(this::toSummary);
     }
 
+    public java.util.List<OfferSummaryResponse> getMyOffers(UUID posterId) {
+        return offerRepo.findByPosterId(posterId).stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
     public OfferResponse getById(UUID offerId, UUID currentUserId) {
         Offer offer = findOrThrow(offerId);
         long count = currentUserId != null && offer.getPosterId().equals(currentUserId)

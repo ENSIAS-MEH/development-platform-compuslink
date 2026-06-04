@@ -31,4 +31,8 @@ public class UserCv {
     @CreationTimestamp
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     private OffsetDateTime uploadedAt;
+
+    @Builder.Default
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault = false;
 }

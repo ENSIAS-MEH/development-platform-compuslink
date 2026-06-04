@@ -63,6 +63,12 @@ public class MeController {
         return Map.of("profilePicUrl", url);
     }
 
+    @DeleteMapping("/profile/picture")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteProfilePicture() {
+        userService.updateProfilePicUrl(SecurityUtils.getCurrentUserId(), null);
+    }
+
     // --- Multiple CV endpoints ---
 
     @PostMapping("/profile/cv")
@@ -93,5 +99,22 @@ public class MeController {
         }
         fileStorageService.delete(cv.getFileUrl());
         userCvRepository.delete(cv);
+    }
+
+    @PatchMapping("/profile/cvs/{cvId}/default")
+    public UserCv setDefaultCv(@PathVariable UUID cvId) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        UserCv cv = userCvRepository.findById(cvId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!cv.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        // Unset all defaults for this user
+        List<UserCv> allCvs = userCvRepository.findByUserIdOrderByUploadedAtDesc(userId);
+        allCvs.forEach(c -> c.setDefault(false));
+        userCvRepository.saveAll(allCvs);
+        // Set the selected one
+        cv.setDefault(true);
+        return userCvRepository.save(cv);
     }
 }

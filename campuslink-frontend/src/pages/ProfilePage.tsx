@@ -64,6 +64,7 @@ interface UserCv {
   fileUrl: string;
   originalName: string;
   uploadedAt: string;
+  default: boolean;
 }
 
 interface MyApplication {
@@ -74,6 +75,17 @@ interface MyApplication {
   offerType: string;
   status: string;
   appliedAt: string;
+}
+
+interface MyOffer {
+  id: string;
+  type: string;
+  title: string;
+  company: string;
+  city: string;
+  status: string;
+  domain: string;
+  createdAt: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -92,8 +104,9 @@ export default function ProfilePage() {
   const [myParticipations, setMyParticipations] = useState<MyEvent[]>([]);
   const [cvs, setCvs] = useState<UserCv[]>([]);
   const [myApplications, setMyApplications] = useState<MyApplication[]>([]);
+  const [myOffers, setMyOffers] = useState<MyOffer[]>([]);
   const [eventsSubTab, setEventsSubTab] = useState<"organized" | "participating">("organized");
-  const [activeTab, setActiveTab] = useState<"marketplace" | "colocation" | "favoris" | "events" | "applications">("marketplace");
+  const [activeTab, setActiveTab] = useState<"marketplace" | "colocation" | "offers" | "favoris" | "events" | "applications">("marketplace");
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({ fullName: "", university: "", city: "", phoneNumber: "", bio: "" });
@@ -127,8 +140,13 @@ export default function ProfilePage() {
     });
   };
 
+  const setDefaultCv = async (id: string) => {
+    const { data } = await api.patch(`/me/profile/cvs/${id}/default`);
+    setCvs((prev) => prev.map((cv) => ({ ...cv, default: cv.id === data.id })));
+  };
+
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       api.get("/me/profile"),
       api.get("/marketplace/my-items"),
       api.get("/colocations/my-posts"),
@@ -137,22 +155,26 @@ export default function ProfilePage() {
       api.get("/events/my-participations"),
       api.get("/me/profile/cvs"),
       api.get("/me/applications"),
-    ]).then(([profileRes, itemsRes, colocRes, savedRes, eventsRes, participationsRes, cvsRes, appsRes]) => {
-      setProfile(profileRes.data);
-      setForm({
-        fullName: profileRes.data.fullName || "",
-        university: profileRes.data.university || "",
-        city: profileRes.data.city || "",
-        phoneNumber: profileRes.data.phoneNumber || "",
-        bio: profileRes.data.bio || "",
-      });
-      setItems(itemsRes.data);
-      setColocPosts(colocRes.data);
-      setSavedItems(savedRes.data);
-      setMyEvents(eventsRes.data);
-      setMyParticipations(participationsRes.data);
-      setCvs(cvsRes.data);
-      setMyApplications(appsRes.data);
+      api.get("/offers/my-offers"),
+    ]).then(([profileRes, itemsRes, colocRes, savedRes, eventsRes, participationsRes, cvsRes, appsRes, offersRes]) => {
+      if (profileRes.status === "fulfilled") {
+        setProfile(profileRes.value.data);
+        setForm({
+          fullName: profileRes.value.data.fullName || "",
+          university: profileRes.value.data.university || "",
+          city: profileRes.value.data.city || "",
+          phoneNumber: profileRes.value.data.phoneNumber || "",
+          bio: profileRes.value.data.bio || "",
+        });
+      }
+      if (itemsRes.status === "fulfilled") setItems(itemsRes.value.data);
+      if (colocRes.status === "fulfilled") setColocPosts(colocRes.value.data);
+      if (savedRes.status === "fulfilled") setSavedItems(savedRes.value.data);
+      if (eventsRes.status === "fulfilled") setMyEvents(eventsRes.value.data);
+      if (participationsRes.status === "fulfilled") setMyParticipations(participationsRes.value.data);
+      if (cvsRes.status === "fulfilled") setCvs(cvsRes.value.data);
+      if (appsRes.status === "fulfilled") setMyApplications(appsRes.value.data);
+      if (offersRes.status === "fulfilled") setMyOffers(offersRes.value.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -200,6 +222,17 @@ export default function ProfilePage() {
     });
   };
 
+  const deleteOffer = async (id: string) => {
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer cette offre ?",
+      onConfirm: async () => {
+        await api.delete(`/offers/${id}`);
+        setMyOffers((prev) => prev.filter((o) => o.id !== id));
+        setConfirmModal(null);
+      },
+    });
+  };
+
   const leaveEvent = async (id: string) => {
     setConfirmModal({
       message: "Êtes-vous sûr de vouloir quitter cet événement ?",
@@ -230,6 +263,7 @@ export default function ProfilePage() {
   const tabs = [
     { key: "marketplace", label: "Mes Annonces Marketplace" },
     { key: "colocation", label: "Mes Colocations" },
+    { key: "offers", label: "Mes Offres" },
     { key: "events", label: "Mes Événements" },
     { key: "applications", label: "Mes Candidatures" },
     { key: "favoris", label: "Favoris" },
@@ -256,6 +290,14 @@ export default function ProfilePage() {
               >
                 <span className="material-symbols-outlined text-[16px]">add</span>
               </button>
+              {profile.profilePicUrl && (
+                <button
+                  onClick={async () => { await api.delete("/me/profile/picture"); setProfile((p) => p ? { ...p, profilePicUrl: null } : p); }}
+                  className="absolute -top-1 -right-1 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition-colors border-2 border-white"
+                >
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              )}
             </div>
             <input ref={picInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], "/me/profile/picture", "profilePicUrl")} />
 
@@ -334,20 +376,30 @@ export default function ProfilePage() {
             {cvs.length > 0 && (
               <div className="space-y-3">
                 {cvs.map((cv) => (
-                  <div key={cv.id} className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
+                  <div key={cv.id} className={`flex items-center justify-between rounded-xl p-4 ${cv.default ? "bg-primary/5 border border-primary/20" : "bg-gray-50"}`}>
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{cv.originalName || "CV"}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{cv.originalName || "CV"}</p>
+                          {cv.default && <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">Par défaut</span>}
+                        </div>
                         <a href={cv.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
                           Télécharger
                         </a>
                         <span className="text-xs text-gray-400 ml-2">{new Date(cv.uploadedAt).toLocaleDateString("fr-FR")}</span>
                       </div>
                     </div>
-                    <button onClick={() => deleteCv(cv.id)} className="ml-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shrink-0">
-                      <span className="material-symbols-outlined text-[14px]">delete</span>
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {!cv.default && (
+                        <button onClick={() => setDefaultCv(cv.id)} className="w-7 h-7 bg-primary/10 text-primary rounded-full flex items-center justify-center hover:bg-primary/20" title="Définir par défaut">
+                          <span className="material-symbols-outlined text-[14px]">star</span>
+                        </button>
+                      )}
+                      <button onClick={() => deleteCv(cv.id)} className="w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600">
+                        <span className="material-symbols-outlined text-[14px]">delete</span>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -458,6 +510,46 @@ export default function ProfilePage() {
                   <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
                   <p className="text-sm font-medium text-gray-600 mt-2">Créer une colocation</p>
                 </Link>
+              </div>
+            )}
+
+            {/* Offers */}
+            {activeTab === "offers" && (
+              <div className="space-y-4">
+                {myOffers.length === 0 ? (
+                  <div className="text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">work</span>
+                    <p className="text-gray-500 mt-3">Vous n'avez publié aucune offre</p>
+                    <Link to="/offers/create" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Créer une offre →
+                    </Link>
+                  </div>
+                ) : myOffers.map((offer) => (
+                  <div key={offer.id} className="relative bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4">
+                    <button onClick={() => deleteOffer(offer.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
+                    <Link to={`/offers/${offer.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
+                        {offer.company?.charAt(0) || "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm truncate">{offer.title}</h4>
+                        <p className="text-xs text-gray-500">{offer.company} · {offer.type}{offer.city ? ` · ${offer.city}` : ""}</p>
+                        <p className="text-xs text-gray-400 mt-1">{new Date(offer.createdAt).toLocaleDateString("fr-FR")}</p>
+                      </div>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${
+                        offer.status === "OPEN" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                      }`}>{offer.status}</span>
+                    </Link>
+                  </div>
+                ))}
+                {myOffers.length > 0 && (
+                  <Link to="/offers/create" className="block border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-primary/50 transition-colors">
+                    <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
+                    <p className="text-sm font-medium text-gray-600 mt-2">Créer une offre</p>
+                  </Link>
+                )}
               </div>
             )}
 
