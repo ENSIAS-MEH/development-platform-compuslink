@@ -45,6 +45,11 @@ public class OfferController {
         return offerService.list(type, city, domain, locationType, status, page, size);
     }
 
+    @GetMapping("/my-offers")
+    public java.util.List<OfferSummaryResponse> getMyOffers(@AuthenticationPrincipal UserPrincipal principal) {
+        return offerService.getMyOffers(principal.getUser().getId());
+    }
+
     @GetMapping("/{id}")
     public OfferResponse getById(@PathVariable UUID id,
                                  @AuthenticationPrincipal UserPrincipal principal) {

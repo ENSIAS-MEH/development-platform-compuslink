@@ -25,4 +25,9 @@ public class ApplicationResponse {
     private AppStatus status;
     private OffsetDateTime appliedAt;
     private OffsetDateTime updatedAt;
+
+    // Offer details
+    private String offerTitle;
+    private String offerCompany;
+    private String offerType;
 }

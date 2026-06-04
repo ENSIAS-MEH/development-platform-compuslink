@@ -38,8 +38,9 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 username = jwtService.extractUserName(token);
             } catch (JwtException | IllegalArgumentException ex) {
+                // Don't block the request — let Spring Security decide based on permitAll/authenticated
                 SecurityContextHolder.clearContext();
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+                filterChain.doFilter(request, response);
                 return;
             }
         }
@@ -56,8 +57,6 @@ public class JwtFilter extends OncePerRequestFilter {
                 }
             } catch (JwtException | IllegalArgumentException ex) {
                 SecurityContextHolder.clearContext();
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
-                return;
             }
         }
         filterChain.doFilter(request, response);
