@@ -373,6 +373,15 @@ export default function ProfilePage() {
             {/* Marketplace Items */}
             {activeTab === "marketplace" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {items.length === 0 && (
+                  <div className="col-span-2 text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">shopping_bag</span>
+                    <p className="text-gray-500 mt-3">Vous n'avez aucune annonce</p>
+                    <Link to="/marketplace/create" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Créer ma première annonce →
+                    </Link>
+                  </div>
+                )}
                 {items.map((item) => (
                   <div key={item.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
                     <button onClick={() => deleteItem(item.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
@@ -399,7 +408,7 @@ export default function ProfilePage() {
                     </Link>
                   </div>
                 ))}
-                <Link to="/marketplace/create" className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px]">
+                <Link to="/marketplace/create" className={`border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px] ${items.length === 0 ? "hidden" : ""}`}>
                   <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
                   <p className="text-sm font-medium text-gray-600 mt-2">Créer une annonce</p>
                 </Link>
@@ -409,6 +418,15 @@ export default function ProfilePage() {
             {/* Colocation Posts */}
             {activeTab === "colocation" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {colocPosts.length === 0 && (
+                  <div className="col-span-2 text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">home</span>
+                    <p className="text-gray-500 mt-3">Vous n'avez aucune colocation</p>
+                    <Link to="/colocation/create" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Publier une colocation →
+                    </Link>
+                  </div>
+                )}
                 {colocPosts.map((post) => (
                   <div key={post.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
                     <button onClick={() => deleteColoc(post.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
@@ -436,7 +454,7 @@ export default function ProfilePage() {
                     </Link>
                   </div>
                 ))}
-                <Link to="/colocation/create" className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px]">
+                <Link to="/colocation/create" className={`border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px] ${colocPosts.length === 0 ? "hidden" : ""}`}>
                   <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
                   <p className="text-sm font-medium text-gray-600 mt-2">Créer une colocation</p>
                 </Link>
@@ -457,6 +475,17 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(eventsSubTab === "organized" ? myEvents : myParticipations).length === 0 && (
+                    <div className="col-span-2 text-center py-12">
+                      <span className="material-symbols-outlined text-gray-300 text-5xl">event</span>
+                      <p className="text-gray-500 mt-3">
+                        {eventsSubTab === "organized" ? "Vous n'avez créé aucun événement" : "Vous ne participez à aucun événement"}
+                      </p>
+                      <Link to={eventsSubTab === "organized" ? "/events/create" : "/events"} className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                        {eventsSubTab === "organized" ? "Créer un événement →" : "Découvrir les événements →"}
+                      </Link>
+                    </div>
+                  )}
                   {(eventsSubTab === "organized" ? myEvents : myParticipations).map((event) => (
                     <div key={event.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
                       {eventsSubTab === "organized" && (
@@ -492,7 +521,7 @@ export default function ProfilePage() {
                       </Link>
                     </div>
                   ))}
-                  {eventsSubTab === "organized" && (
+                  {eventsSubTab === "organized" && myEvents.length > 0 && (
                     <Link to="/events/create" className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px]">
                       <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
                       <p className="text-sm font-medium text-gray-600 mt-2">Créer un événement</p>
@@ -506,7 +535,13 @@ export default function ProfilePage() {
             {activeTab === "applications" && (
               <div className="space-y-4">
                 {myApplications.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-12">Aucune candidature pour l'instant.</p>
+                  <div className="text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">work</span>
+                    <p className="text-gray-500 mt-3">Vous n'avez postulé à aucune offre</p>
+                    <Link to="/offers" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Découvrir les offres →
+                    </Link>
+                  </div>
                 ) : myApplications.map((app) => (
                   <Link key={app.id} to={`/offers/${app.offerId}`} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4 block">
                     <div className="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
@@ -532,7 +567,13 @@ export default function ProfilePage() {
             {activeTab === "favoris" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {savedItems.length === 0 ? (
-                  <p className="text-sm text-gray-400 col-span-2 text-center py-12">Aucun favori pour l'instant.</p>
+                  <div className="col-span-2 text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">bookmark</span>
+                    <p className="text-gray-500 mt-3">Aucun favori pour l'instant</p>
+                    <Link to="/marketplace" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Explorer le marketplace →
+                    </Link>
+                  </div>
                 ) : savedItems.map((saved) => (
                   <div key={saved.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
                     <button onClick={() => deleteSaved(saved.targetType, saved.targetId)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
