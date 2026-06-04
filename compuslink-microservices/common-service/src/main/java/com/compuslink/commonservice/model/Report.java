@@ -1,0 +1,17 @@
+package com.compuslink.commonservice.model;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import java.time.OffsetDateTime; import java.util.UUID;
+
+@Data @Builder @NoArgsConstructor @AllArgsConstructor @Entity @Table(name = "reports")
+public class Report {
+    @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
+    @Column(name = "reporter_id", nullable = false) private UUID reporterId;
+    @Enumerated(EnumType.STRING) @Column(name = "target_type", nullable = false) private TargetType targetType;
+    @Column(name = "target_id", nullable = false) private UUID targetId;
+    @Enumerated(EnumType.STRING) @Column(nullable = false) private ReportReason reason;
+    @Column(length = 500) private String details;
+    @Builder.Default @Enumerated(EnumType.STRING) @Column(nullable = false) private ReportStatus status = ReportStatus.PENDING;
+    @CreationTimestamp @Column(name = "created_at", nullable = false, updatable = false) private OffsetDateTime createdAt;
+}
