@@ -123,7 +123,7 @@ public class ApplicationService {
     }
 
     private ApplicationResponse toResponse(Application a) {
-        return ApplicationResponse.builder()
+        ApplicationResponse.ApplicationResponseBuilder builder = ApplicationResponse.builder()
                 .id(a.getId())
                 .offerId(a.getOfferId())
                 .applicantId(a.getApplicantId())
@@ -131,7 +131,14 @@ public class ApplicationService {
                 .message(a.getMessage())
                 .status(a.getStatus())
                 .appliedAt(a.getAppliedAt())
-                .updatedAt(a.getUpdatedAt())
-                .build();
+                .updatedAt(a.getUpdatedAt());
+
+        offerRepo.findById(a.getOfferId()).ifPresent(offer -> {
+            builder.offerTitle(offer.getTitle());
+            builder.offerCompany(offer.getCompany());
+            builder.offerType(offer.getType().toString());
+        });
+
+        return builder.build();
     }
 }

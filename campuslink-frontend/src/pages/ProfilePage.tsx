@@ -66,6 +66,16 @@ interface UserCv {
   uploadedAt: string;
 }
 
+interface MyApplication {
+  id: string;
+  offerId: string;
+  offerTitle: string;
+  offerCompany: string;
+  offerType: string;
+  status: string;
+  appliedAt: string;
+}
+
 const STATUS_COLORS: Record<string, string> = {
   OPEN: "bg-blue-100 text-blue-700",
   SOLD: "bg-red-100 text-red-700",
@@ -81,8 +91,9 @@ export default function ProfilePage() {
   const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
   const [myParticipations, setMyParticipations] = useState<MyEvent[]>([]);
   const [cvs, setCvs] = useState<UserCv[]>([]);
+  const [myApplications, setMyApplications] = useState<MyApplication[]>([]);
   const [eventsSubTab, setEventsSubTab] = useState<"organized" | "participating">("organized");
-  const [activeTab, setActiveTab] = useState<"marketplace" | "colocation" | "favoris" | "events">("marketplace");
+  const [activeTab, setActiveTab] = useState<"marketplace" | "colocation" | "favoris" | "events" | "applications">("marketplace");
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({ fullName: "", university: "", city: "", phoneNumber: "", bio: "" });
@@ -125,7 +136,8 @@ export default function ProfilePage() {
       api.get("/events/my-events"),
       api.get("/events/my-participations"),
       api.get("/me/profile/cvs"),
-    ]).then(([profileRes, itemsRes, colocRes, savedRes, eventsRes, participationsRes, cvsRes]) => {
+      api.get("/me/applications"),
+    ]).then(([profileRes, itemsRes, colocRes, savedRes, eventsRes, participationsRes, cvsRes, appsRes]) => {
       setProfile(profileRes.data);
       setForm({
         fullName: profileRes.data.fullName || "",
@@ -140,6 +152,7 @@ export default function ProfilePage() {
       setMyEvents(eventsRes.data);
       setMyParticipations(participationsRes.data);
       setCvs(cvsRes.data);
+      setMyApplications(appsRes.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -218,6 +231,7 @@ export default function ProfilePage() {
     { key: "marketplace", label: "Mes Annonces Marketplace" },
     { key: "colocation", label: "Mes Colocations" },
     { key: "events", label: "Mes Événements" },
+    { key: "applications", label: "Mes Candidatures" },
     { key: "favoris", label: "Favoris" },
   ] as const;
 
@@ -485,6 +499,32 @@ export default function ProfilePage() {
                     </Link>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Applications */}
+            {activeTab === "applications" && (
+              <div className="space-y-4">
+                {myApplications.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-12">Aucune candidature pour l'instant.</p>
+                ) : myApplications.map((app) => (
+                  <Link key={app.id} to={`/offers/${app.offerId}`} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4 block">
+                    <div className="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
+                      {app.offerCompany?.charAt(0) || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm truncate">{app.offerTitle}</h4>
+                      <p className="text-xs text-gray-500">{app.offerCompany} · {app.offerType}</p>
+                      <p className="text-xs text-gray-400 mt-1">Postulé le {new Date(app.appliedAt).toLocaleDateString("fr-FR")}</p>
+                    </div>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${
+                      app.status === "ACCEPTED" ? "bg-green-100 text-green-700" :
+                      app.status === "REJECTED" ? "bg-red-100 text-red-700" :
+                      app.status === "SEEN" ? "bg-blue-100 text-blue-700" :
+                      "bg-yellow-100 text-yellow-700"
+                    }`}>{app.status}</span>
+                  </Link>
+                ))}
               </div>
             )}
 
