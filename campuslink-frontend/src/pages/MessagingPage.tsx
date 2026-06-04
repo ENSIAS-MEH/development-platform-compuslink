@@ -196,7 +196,7 @@ export default function MessagingPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-8 py-12 flex flex-col" style={{ height: "calc(100vh - 64px - 200px)" }}>
+    <div className="max-w-7xl mx-auto px-8 py-6 flex flex-col" style={{ height: "calc(100vh - 100px)" }}>
       <h1 className="text-4xl font-bold font-[Geist] mb-8">Messages</h1>
 
       <div className="flex gap-6 flex-1 min-h-0 overflow-hidden">

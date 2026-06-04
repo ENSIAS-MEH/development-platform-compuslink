@@ -34,7 +34,7 @@ export default function ColocationPage() {
         if (furnishedFilter !== "") params.append("furnished", furnishedFilter);
         if (spotsFilter !== "") params.append("spotsNeeded", spotsFilter);
 
-        const response = await fetch(`http://localhost:8080/api/colocations?${params.toString()}`, {
+        const response = await fetch(`http://localhost:8080/api/coloc?${params.toString()}`, {
           method: "GET",
           headers: headers
         });

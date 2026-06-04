@@ -149,7 +149,7 @@ export default function ProfilePage() {
     Promise.allSettled([
       api.get("/me/profile"),
       api.get("/marketplace/my-items"),
-      api.get("/colocations/my-posts"),
+      api.get("/coloc/my-posts"),
       api.get("/saved"),
       api.get("/events/my-events"),
       api.get("/events/my-participations"),
@@ -204,7 +204,7 @@ export default function ProfilePage() {
     setConfirmModal({
       message: "Êtes-vous sûr de vouloir supprimer cette colocation ?",
       onConfirm: async () => {
-        await api.delete(`/colocations/${id}`);
+        await api.delete(`/coloc/${id}`);
         setColocPosts((prev) => prev.filter((p) => p.id !== id));
         setConfirmModal(null);
       },
