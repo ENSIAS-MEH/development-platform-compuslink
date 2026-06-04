@@ -148,8 +148,8 @@ export default function ProfilePage() {
   useEffect(() => {
     Promise.allSettled([
       api.get("/me/profile"),
-      api.get("/marketplace/my-items"),
-      api.get("/colocations/my-posts"),
+      api.get("/items/mine"),
+      api.get("/coloc/my-posts"),
       api.get("/saved"),
       api.get("/events/my-events"),
       api.get("/events/my-participations"),
@@ -193,7 +193,7 @@ export default function ProfilePage() {
     setConfirmModal({
       message: "Êtes-vous sûr de vouloir supprimer cette annonce ?",
       onConfirm: async () => {
-        await api.delete(`/marketplace/items/${id}`);
+        await api.delete(`/items/${id}`);
         setItems((prev) => prev.filter((i) => i.id !== id));
         setConfirmModal(null);
       },
@@ -204,7 +204,7 @@ export default function ProfilePage() {
     setConfirmModal({
       message: "Êtes-vous sûr de vouloir supprimer cette colocation ?",
       onConfirm: async () => {
-        await api.delete(`/colocations/${id}`);
+        await api.delete(`/coloc/${id}`);
         setColocPosts((prev) => prev.filter((p) => p.id !== id));
         setConfirmModal(null);
       },
@@ -248,7 +248,7 @@ export default function ProfilePage() {
     setConfirmModal({
       message: "Êtes-vous sûr de vouloir retirer ce favori ?",
       onConfirm: async () => {
-        await api.delete(`/saved/${targetType}/${targetId}`);
+        await api.delete(`/saved?targetType=${targetType}&targetId=${targetId}`);
         setSavedItems((prev) => prev.filter((s) => !(s.targetType === targetType && s.targetId === targetId)));
         setConfirmModal(null);
       },

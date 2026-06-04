@@ -34,10 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (token) {
-      api.get("/me")
+      api.get("/me/profile")
         .then(({ data }) => {
-          console.log("/me response:", data);
-          setUser({ userId: data.userId, email: data.email, fullName: data.fullName, role: data.role });
+          console.log("/me/profile response:", data);
+          setUser({ userId: data.id, email: data.email, fullName: data.fullName, role: data.role });
         })
         .catch((err) => { console.error("/me failed:", err.response?.status, err.response?.data); localStorage.clear(); setUser(null); })
         .finally(() => setLoading(false));

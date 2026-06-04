@@ -11,8 +11,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Service
 @Transactional
@@ -54,12 +56,15 @@ public class ItemService {
 
     public List<ItemSummaryResponse> browseItems(String search, String city, String category,
                                                   ItemCondition condition, ItemStatus status) {
-        Specification<Item> spec = Specification
-                .where(ItemSpecification.containsSearch(search))
-                .and(ItemSpecification.hasCity(city))
-                .and(ItemSpecification.hasCategory(category))
-                .and(ItemSpecification.hasCondition(condition))
-                .and(ItemSpecification.hasStatus(status));
+        // Spring Data JPA 4 rejects null specifications, so only combine the active filters.
+        List<Specification<Item>> filters = Stream.of(
+                ItemSpecification.containsSearch(search),
+                ItemSpecification.hasCity(city),
+                ItemSpecification.hasCategory(category),
+                ItemSpecification.hasCondition(condition),
+                ItemSpecification.hasStatus(status)
+        ).filter(Objects::nonNull).toList();
+        Specification<Item> spec = Specification.allOf(filters);
         return itemRepo.findAll(spec).stream().map(this::toSummary).toList();
     }
 

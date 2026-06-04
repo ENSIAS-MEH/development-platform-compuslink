@@ -18,6 +18,16 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final EventParticipantRepository participantRepository;
+    private final EventFileStorageService fileStorage;
+
+    public EventResponse setCover(UUID eventId, org.springframework.web.multipart.MultipartFile file, UUID userId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        if (!event.getOrganizerId().equals(userId))
+            throw new AccessDeniedException("Non autorisé");
+        event.setCoverUrl(fileStorage.store(file));
+        return toResponse(eventRepository.save(event), userId);
+    }
 
     public EventResponse createEvent(CreateEventRequest request, UUID organizerId) {
         Event event = Event.builder()

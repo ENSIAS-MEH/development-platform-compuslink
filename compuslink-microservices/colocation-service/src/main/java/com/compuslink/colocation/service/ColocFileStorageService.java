@@ -17,7 +17,7 @@ public class ColocFileStorageService {
             Path dir = Paths.get(uploadDir); Files.createDirectories(dir);
             String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
             Files.copy(file.getInputStream(), dir.resolve(filename));
-            return baseUrl + "/uploads/" + filename;
+            return baseUrl + "/coloc-uploads/" + filename;
         } catch (IOException e) { throw new RuntimeException("Failed to store file", e); }
     }
 }

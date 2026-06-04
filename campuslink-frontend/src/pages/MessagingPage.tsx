@@ -89,7 +89,7 @@ export default function MessagingPage() {
   const fetchConversations = async (isInitialLoad = false) => {
     try {
       if (isInitialLoad) setLoading(true);
-      const response = await api.get("/messages/conversations");
+      const response = await api.get("/conversations");
       setConversations(response.data);
 
       if (locationState?.sellerId && !selectedConversation) {
@@ -113,7 +113,7 @@ export default function MessagingPage() {
 
   const fetchMessages = async (conversationId: string) => {
     try {
-      const response = await api.get(`/messages/conversations/${conversationId}`);
+      const response = await api.get(`/conversations/${conversationId}/messages`);
       const newMessages = response.data;
 
       // Check if there are new messages
@@ -131,7 +131,7 @@ export default function MessagingPage() {
 
   const sendInitialMessage = async (message: string, recipientId: string) => {
     try {
-      await api.post(`/messages/send/${recipientId}`, {
+      await api.post(`/messages/${recipientId}`, {
         content: message,
       });
       // Refresh conversations to include the newly created one
@@ -147,7 +147,7 @@ export default function MessagingPage() {
 
     setSendingMessage(true);
     try {
-      const response = await api.post(`/messages/send/${selectedConversation.otherUserId}`, {
+      const response = await api.post(`/messages/${selectedConversation.otherUserId}`, {
         content: messageInput,
       });
       setMessages([...messages, response.data]);
@@ -196,7 +196,7 @@ export default function MessagingPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-8 py-12 flex flex-col" style={{ height: "calc(100vh - 64px - 200px)" }}>
+    <div className="max-w-7xl mx-auto px-8 py-6 flex flex-col" style={{ height: "calc(100vh - 100px)" }}>
       <h1 className="text-4xl font-bold font-[Geist] mb-8">Messages</h1>
 
       <div className="flex gap-6 flex-1 min-h-0 overflow-hidden">
