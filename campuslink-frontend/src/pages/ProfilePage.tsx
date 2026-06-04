@@ -187,6 +187,17 @@ export default function ProfilePage() {
     });
   };
 
+  const leaveEvent = async (id: string) => {
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir quitter cet événement ?",
+      onConfirm: async () => {
+        await api.delete(`/events/${id}/leave`);
+        setMyParticipations((prev) => prev.filter((e) => e.id !== id));
+        setConfirmModal(null);
+      },
+    });
+  };
+
   const deleteSaved = async (targetType: string, targetId: string) => {
     setConfirmModal({
       message: "Êtes-vous sûr de vouloir retirer ce favori ?",
@@ -437,6 +448,12 @@ export default function ProfilePage() {
                       {eventsSubTab === "organized" && (
                         <button onClick={() => deleteEvent(event.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
                           <span className="material-symbols-outlined text-[14px]">delete</span>
+                        </button>
+                      )}
+                      {eventsSubTab === "participating" && (
+                        <button onClick={() => leaveEvent(event.id)} className="absolute top-2 right-2 z-10 bg-orange-500 text-white px-2.5 py-1 rounded-full flex items-center gap-1 hover:bg-orange-600 shadow text-xs font-medium">
+                          <span className="material-symbols-outlined text-[14px]">logout</span>
+                          Quitter
                         </button>
                       )}
                       <Link to={`/events/${event.id}`}>
