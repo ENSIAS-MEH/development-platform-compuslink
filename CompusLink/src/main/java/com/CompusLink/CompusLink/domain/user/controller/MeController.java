@@ -4,17 +4,23 @@ import com.CompusLink.CompusLink.domain.marketplace.service.FileStorageService;
 import com.CompusLink.CompusLink.domain.user.dto.CurrentUserResponse;
 import com.CompusLink.CompusLink.domain.user.dto.UpdateProfileRequest;
 import com.CompusLink.CompusLink.domain.user.dto.UserProfileResponse;
+import com.CompusLink.CompusLink.domain.user.model.UserCv;
 import com.CompusLink.CompusLink.domain.user.model.UserPrincipal;
 import com.CompusLink.CompusLink.domain.user.model.Users;
+import com.CompusLink.CompusLink.domain.user.repository.UserCvRepository;
 import com.CompusLink.CompusLink.domain.user.service.UserService;
 import com.CompusLink.CompusLink.domain.user.util.SecurityUtils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/me")
@@ -25,6 +31,9 @@ public class MeController {
 
     @Autowired
     private FileStorageService fileStorageService;
+
+    @Autowired
+    private UserCvRepository userCvRepository;
 
     @GetMapping
     public CurrentUserResponse me(@AuthenticationPrincipal UserPrincipal principal) {
@@ -54,10 +63,35 @@ public class MeController {
         return Map.of("profilePicUrl", url);
     }
 
+    // --- Multiple CV endpoints ---
+
     @PostMapping("/profile/cv")
-    public Map<String, String> uploadCv(@RequestParam("file") MultipartFile file) {
+    public UserCv uploadCv(@RequestParam("file") MultipartFile file) {
+        UUID userId = SecurityUtils.getCurrentUserId();
         String url = fileStorageService.store(file);
-        userService.updateCvUrl(SecurityUtils.getCurrentUserId(), url);
-        return Map.of("cvUrl", url);
+        String originalName = file.getOriginalFilename();
+        UserCv cv = UserCv.builder()
+                .userId(userId)
+                .fileUrl(url)
+                .originalName(originalName)
+                .build();
+        return userCvRepository.save(cv);
+    }
+
+    @GetMapping("/profile/cvs")
+    public List<UserCv> listCvs() {
+        return userCvRepository.findByUserIdOrderByUploadedAtDesc(SecurityUtils.getCurrentUserId());
+    }
+
+    @DeleteMapping("/profile/cvs/{cvId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCv(@PathVariable UUID cvId) {
+        UserCv cv = userCvRepository.findById(cvId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!cv.getUserId().equals(SecurityUtils.getCurrentUserId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        fileStorageService.delete(cv.getFileUrl());
+        userCvRepository.delete(cv);
     }
 }

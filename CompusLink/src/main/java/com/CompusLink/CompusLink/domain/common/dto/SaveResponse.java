@@ -21,11 +21,12 @@ public class SaveResponse {
     private UUID targetId;
     private OffsetDateTime createdAt;
 
-    // Item details (populated for ITEM targetType)
+    // Enriched fields (populated based on targetType)
     private String title;
     private BigDecimal price;
     private String city;
     private String category;
     private String condition;
     private String coverImageUrl;
+    private String status;
 }

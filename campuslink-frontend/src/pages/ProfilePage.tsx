@@ -40,6 +40,12 @@ interface SavedItem {
   id: string;
   targetType: string;
   targetId: string;
+  title: string | null;
+  price: number | null;
+  city: string | null;
+  category: string | null;
+  status: string | null;
+  coverImageUrl: string | null;
 }
 
 interface MyEvent {
@@ -51,6 +57,13 @@ interface MyEvent {
   participantCount: number;
   coverUrl: string | null;
   cancelled: boolean;
+}
+
+interface UserCv {
+  id: string;
+  fileUrl: string;
+  originalName: string;
+  uploadedAt: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -67,6 +80,7 @@ export default function ProfilePage() {
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
   const [myParticipations, setMyParticipations] = useState<MyEvent[]>([]);
+  const [cvs, setCvs] = useState<UserCv[]>([]);
   const [eventsSubTab, setEventsSubTab] = useState<"organized" | "participating">("organized");
   const [activeTab, setActiveTab] = useState<"marketplace" | "colocation" | "favoris" | "events">("marketplace");
   const [loading, setLoading] = useState(true);
@@ -83,6 +97,19 @@ export default function ProfilePage() {
     setProfile((p) => p ? { ...p, [field]: data[field] } : p);
   };
 
+  const handleCvUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await api.post("/me/profile/cv", formData);
+    setCvs((prev) => [data, ...prev]);
+  };
+
+  const deleteCv = async (id: string) => {
+    if (!confirm("Supprimer ce CV ?")) return;
+    await api.delete(`/me/profile/cvs/${id}`);
+    setCvs((prev) => prev.filter((cv) => cv.id !== id));
+  };
+
   useEffect(() => {
     Promise.all([
       api.get("/me/profile"),
@@ -91,7 +118,8 @@ export default function ProfilePage() {
       api.get("/saved"),
       api.get("/events/my-events"),
       api.get("/events/my-participations"),
-    ]).then(([profileRes, itemsRes, colocRes, savedRes, eventsRes, participationsRes]) => {
+      api.get("/me/profile/cvs"),
+    ]).then(([profileRes, itemsRes, colocRes, savedRes, eventsRes, participationsRes, cvsRes]) => {
       setProfile(profileRes.data);
       setForm({
         fullName: profileRes.data.fullName || "",
@@ -105,6 +133,7 @@ export default function ProfilePage() {
       setSavedItems(savedRes.data);
       setMyEvents(eventsRes.data);
       setMyParticipations(participationsRes.data);
+      setCvs(cvsRes.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -135,6 +164,12 @@ export default function ProfilePage() {
     if (!confirm("Supprimer cet événement ?")) return;
     await api.delete(`/events/${id}`);
     setMyEvents((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const deleteSaved = async (targetType: string, targetId: string) => {
+    if (!confirm("Retirer des favoris ?")) return;
+    await api.delete(`/saved/${targetType}/${targetId}`);
+    setSavedItems((prev) => prev.filter((s) => !(s.targetType === targetType && s.targetId === targetId)));
   };
 
   if (loading) return <div className="flex justify-center items-center h-64 text-gray-400">Loading...</div>;
@@ -236,27 +271,36 @@ export default function ProfilePage() {
               <h3 className="text-lg font-bold font-[Geist]">Curriculum Vitae</h3>
               <span className="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-full">Privé</span>
             </div>
-            <p className="text-sm text-gray-500 mb-4">Téléchargez votre CV pour postuler plus rapidement aux offres de stage et d'emploi.</p>
+            <p className="text-sm text-gray-500 mb-4">Téléchargez vos CVs pour postuler plus rapidement aux offres de stage et d'emploi.</p>
 
-            {profile.cvUrl ? (
-              <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
-                  <div>
-                    <p className="text-sm font-medium">CV disponible</p>
-                    <a href={profile.cvUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">Voir le CV</a>
+            <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors mb-4" onClick={() => cvInputRef.current?.click()}>
+              <span className="material-symbols-outlined text-gray-400 text-3xl">cloud_upload</span>
+              <p className="text-sm font-medium mt-2">Cliquez pour ajouter un CV</p>
+              <p className="text-xs text-gray-400 mt-1">PDF, DOCX jusqu'à 10MB</p>
+            </div>
+            <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => { if (e.target.files?.[0]) { handleCvUpload(e.target.files[0]); e.target.value = ""; } }} />
+
+            {cvs.length > 0 && (
+              <div className="space-y-3">
+                {cvs.map((cv) => (
+                  <div key={cv.id} className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{cv.originalName || "CV"}</p>
+                        <a href={cv.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                          Télécharger
+                        </a>
+                        <span className="text-xs text-gray-400 ml-2">{new Date(cv.uploadedAt).toLocaleDateString("fr-FR")}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => deleteCv(cv.id)} className="ml-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shrink-0">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
                   </div>
-                </div>
-                <button onClick={() => cvInputRef.current?.click()} className="text-xs text-gray-500 hover:text-primary">Remplacer</button>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => cvInputRef.current?.click()}>
-                <span className="material-symbols-outlined text-gray-400 text-3xl">cloud_upload</span>
-                <p className="text-sm font-medium mt-2">Cliquez pour uploader votre CV</p>
-                <p className="text-xs text-gray-400 mt-1">PDF, DOCX jusqu'à 5MB</p>
+                ))}
               </div>
             )}
-            <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], "/me/profile/cv", "cvUrl")} />
           </div>
 
           {/* Tabs */}
@@ -407,22 +451,49 @@ export default function ProfilePage() {
                 {savedItems.length === 0 ? (
                   <p className="text-sm text-gray-400 col-span-2 text-center py-12">Aucun favori pour l'instant.</p>
                 ) : savedItems.map((saved) => (
-                  <Link key={saved.id} to={
-                    saved.targetType === "ITEM" ? `/marketplace/${saved.targetId}` :
-                    saved.targetType === "COLOC" ? `/colocation/${saved.targetId}` :
-                    saved.targetType === "OFFER" ? `/offers/${saved.targetId}` :
-                    `/events/${saved.targetId}`
-                  } className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-shadow flex items-center gap-3">
-                    <span className="material-symbols-outlined text-primary text-2xl">
-                      {saved.targetType === "ITEM" ? "shopping_bag" :
-                       saved.targetType === "COLOC" ? "home" :
-                       saved.targetType === "OFFER" ? "work" : "event"}
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium">{saved.targetType}</p>
-                      <p className="text-xs text-gray-400">{saved.targetId}</p>
-                    </div>
-                  </Link>
+                  <div key={saved.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <button onClick={() => deleteSaved(saved.targetType, saved.targetId)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
+                    <Link to={
+                      saved.targetType === "ITEM" ? `/marketplace/${saved.targetId}` :
+                      saved.targetType === "COLOC" ? `/colocation/${saved.targetId}` :
+                      saved.targetType === "OFFER" ? `/offers/${saved.targetId}` :
+                      `/events/${saved.targetId}`
+                    }>
+                      <div className="relative h-40 bg-gray-100">
+                        {saved.coverImageUrl ? (
+                          <img src={saved.coverImageUrl} className="w-full h-full object-cover" alt={saved.title || ""} />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <span className="material-symbols-outlined text-4xl">
+                              {saved.targetType === "ITEM" ? "shopping_bag" :
+                               saved.targetType === "COLOC" ? "home" :
+                               saved.targetType === "OFFER" ? "work" : "event"}
+                            </span>
+                          </div>
+                        )}
+                        {saved.price != null && (
+                          <span className="absolute top-3 right-3 bg-white/90 text-xs font-semibold px-2 py-1 rounded-md">
+                            {saved.price} {saved.targetType === "COLOC" ? "MAD/mois" : "MAD"}
+                          </span>
+                        )}
+                        <span className="absolute top-3 left-3 bg-white/90 text-xs font-semibold px-2 py-1 rounded-md">
+                          {saved.targetType}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-sm truncate">{saved.title || saved.targetId}</h4>
+                          {saved.status && (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ml-2 shrink-0 ${STATUS_COLORS[saved.status] || "bg-gray-100 text-gray-600"}`}>{saved.status}</span>
+                          )}
+                        </div>
+                        {saved.city && <p className="text-xs text-gray-500 mt-1">{saved.city}</p>}
+                        {saved.category && <p className="text-xs text-gray-400 mt-1">{saved.category}</p>}
+                      </div>
+                    </Link>
+                  </div>
                 ))}
               </div>
             )}
