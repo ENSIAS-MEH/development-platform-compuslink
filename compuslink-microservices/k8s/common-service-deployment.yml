@@ -1,29 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: messaging-service
+  name: common-service
   namespace: compuslink
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: messaging-service
+      app: common-service
   template:
     metadata:
       labels:
-        app: messaging-service
+        app: common-service
     spec:
       containers:
-        - name: messaging-service
-          image: compuslink/messaging-service:latest
+        - name: common-service
+          image: compuslink/common-service:latest
           imagePullPolicy: Never
           ports:
-            - containerPort: 8086
+            - containerPort: 8087
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-XX:MaxRAMPercentage=60.0 -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k"
             - name: DB_URL
-              value: "jdbc:postgresql://postgres:5432/compuslink_messaging"
+              value: "jdbc:postgresql://postgres:5432/compuslink_common"
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -52,13 +52,13 @@ spec:
               memory: "512Mi"
           readinessProbe:
             tcpSocket:
-              port: 8086
+              port: 8087
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 12
           livenessProbe:
             tcpSocket:
-              port: 8086
+              port: 8087
             initialDelaySeconds: 120
             periodSeconds: 20
             failureThreshold: 3
@@ -66,11 +66,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: messaging-service
+  name: common-service
   namespace: compuslink
 spec:
   ports:
-    - port: 8086
-      targetPort: 8086
+    - port: 8087
+      targetPort: 8087
   selector:
-    app: messaging-service
+    app: common-service

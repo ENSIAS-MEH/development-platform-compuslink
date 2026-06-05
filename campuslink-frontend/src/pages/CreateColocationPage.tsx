@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_ORIGIN } from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function CreateColocationPage() {
@@ -52,7 +53,7 @@ export default function CreateColocationPage() {
       const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("Tu dois être connecté pour publier une annonce.");
 
-      const response = await fetch("http://localhost:8080/api/coloc", {
+      const response = await fetch(`${API_ORIGIN}/api/coloc`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -78,7 +79,7 @@ export default function CreateColocationPage() {
           fileFormData.append("files", file); 
         });
 
-        const photoResponse = await fetch(`http://localhost:8080/api/coloc/${postId}/photos`, {
+        const photoResponse = await fetch(`${API_ORIGIN}/api/coloc/${postId}/photos`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}` },
           body: fileFormData

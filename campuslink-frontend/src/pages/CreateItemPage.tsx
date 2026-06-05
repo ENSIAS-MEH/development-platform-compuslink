@@ -18,12 +18,6 @@ export default function CreateItemPage() {
     category: "Electronics",
   });
 
-  const conditionMap: Record<string, string> = {
-    "NEW": "Neuf",
-    "LIKE_NEW": "Très bon état",
-    "GOOD": "Bon état",
-    "FAIR": "Correct"
-  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).slice(0, 5);
