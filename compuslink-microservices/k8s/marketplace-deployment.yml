@@ -27,8 +27,8 @@ spec:
     spec:
       containers:
         - name: marketplace-service
-          image: compuslink/marketplace-service:latest
-          imagePullPolicy: Never
+          image: localhost:5000/compuslink-marketplace-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8082
           env:

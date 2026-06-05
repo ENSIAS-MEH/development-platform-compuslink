@@ -15,11 +15,10 @@ spec:
     spec:
       containers:
         - name: frontend
-          # Built from campuslink-frontend/Dockerfile (nginx serving the SPA).
-          # e.g. (k3s):  docker build -t compuslink/frontend:latest ../../campuslink-frontend
-          #              docker save compuslink/frontend:latest | sudo k3s ctr images import -
-          image: compuslink/frontend:latest
-          imagePullPolicy: Never
+          # Built from campuslink-frontend/Dockerfile (nginx serving the SPA),
+          # pushed to the local registry by the Jenkins pipeline.
+          image: localhost:5000/compuslink-frontend:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
           resources:

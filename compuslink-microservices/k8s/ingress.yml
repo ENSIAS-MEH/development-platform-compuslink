@@ -3,14 +3,11 @@ kind: Ingress
 metadata:
   name: compuslink-ingress
   namespace: compuslink
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    # Needed for the 10MB+ file uploads (CVs, item/event/coloc photos)
-    nginx.ingress.kubernetes.io/proxy-body-size: "30m"
+  # Using k3s's built-in Traefik ingress controller (no extra install).
+  # Traefik has no request-body-size limit by default, so the 10MB+ uploads
+  # (CVs, item/event/coloc photos) work out of the box.
 spec:
-  # NOTE: requires the ingress-nginx controller. k3s ships Traefik by default —
-  # either install ingress-nginx, or start k3s with --disable traefik.
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
     - http:
         paths:
