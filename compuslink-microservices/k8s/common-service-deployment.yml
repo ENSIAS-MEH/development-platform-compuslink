@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: common-service
-          image: compuslink/common-service:latest
-          imagePullPolicy: Never
+          image: localhost:5000/compuslink-common-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8087
           env:

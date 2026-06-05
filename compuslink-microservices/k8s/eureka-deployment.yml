@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: eureka
-          image: compuslink/eureka-server:latest
-          imagePullPolicy: Never
+          image: localhost:5000/compuslink-eureka-server:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8761
           env:

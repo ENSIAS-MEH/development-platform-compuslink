@@ -27,8 +27,8 @@ spec:
     spec:
       containers:
         - name: colocation-service
-          image: compuslink/colocation-service:latest
-          imagePullPolicy: Never
+          image: localhost:5000/compuslink-colocation-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
           env:

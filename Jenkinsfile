@@ -4,11 +4,12 @@
 //
 // One-time prerequisites on the Jenkins/k3s server:
 //   - Docker, kubectl, JDK 21 and Maven available to the 'jenkins' user
-//   - Jenkins credentials:
-//       * 'registry'   (Username/Password)  -> registry login (Docker Hub user, or a local registry)
-//       * 'kubeconfig' (Secret file)        -> /etc/rancher/k3s/k3s.yaml
-//   - Cluster bootstrapped once with k8s/deploy-and-validate.sh (namespace, secrets, deployments exist)
-//   - Deployment manifests point at "${REGISTRY}/compuslink-<svc>" with imagePullPolicy: IfNotPresent
+//   - A local registry running:  docker run -d -p 5000:5000 --restart=always --name registry registry:2
+//   - k3s configured to pull from it over HTTP via /etc/rancher/k3s/registries.yaml (then restart k3s)
+//   - Jenkins credential 'kubeconfig' (Secret file) -> /etc/rancher/k3s/k3s.yaml
+//   - Set BASE_URL / FRONTEND_URL in k8s/common-deployment.yml to the server's address
+// The Deploy stage bootstraps the cluster itself (kubectl apply -f k8s/), so no
+// separate deploy script is required.
 
 // [ build-context dir, image base name, k8s deployment, container name ]
 def UNITS = [
@@ -35,7 +36,7 @@ pipeline {
 
   environment {
     // Docker Hub:  docker.io/<your-user>     |     Local registry:  localhost:5000
-    REGISTRY   = 'docker.io/YOUR_REGISTRY_USER'
+    REGISTRY   = 'localhost:5000'
     IMAGE_TAG  = "${env.BUILD_NUMBER}"
     NAMESPACE  = 'compuslink'
     MAVEN_OPTS = '-Xmx512m'   // keep Maven's heap small on the 8GB box
@@ -69,20 +70,18 @@ pipeline {
 
     stage('Build & Push Images') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'registry',
-                            usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-          script {
-            // log in to the registry host (strip the /user path from REGISTRY)
-            sh 'echo "$REG_PASS" | docker login "${REGISTRY%%/*}" -u "$REG_USER" --password-stdin'
-            for (u in UNITS) {
-              def ctx = u[0]
-              def img = "${REGISTRY}/compuslink-${u[1]}"
-              sh """
-                docker build -t ${img}:${IMAGE_TAG} -t ${img}:latest ${ctx}
-                docker push ${img}:${IMAGE_TAG}
-                docker push ${img}:latest
-              """
-            }
+        script {
+          // Local registry has no auth; Docker treats localhost:5000 as insecure.
+          // (For an authenticated/remote registry, wrap this in withCredentials +
+          //  `docker login` first.)
+          for (u in UNITS) {
+            def ctx = u[0]
+            def img = "${REGISTRY}/compuslink-${u[1]}"
+            sh """
+              docker build -t ${img}:${IMAGE_TAG} -t ${img}:latest ${ctx}
+              docker push ${img}:${IMAGE_TAG}
+              docker push ${img}:latest
+            """
           }
         }
       }
@@ -92,6 +91,11 @@ pipeline {
       steps {
         withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
           script {
+            // Idempotent bootstrap: creates namespace, secrets/config, postgres,
+            // all deployments/services, and the ingress on first run; updates them
+            // on later runs. (Namespace applied first so namespaced objects don't race it.)
+            sh 'kubectl apply -f compuslink-microservices/k8s/namespace.yml'
+            sh 'kubectl apply -f compuslink-microservices/k8s/'
             // pin every deployment to this build's immutable tag
             for (u in UNITS) {
               def img = "${REGISTRY}/compuslink-${u[1]}:${IMAGE_TAG}"

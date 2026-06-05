@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: offer-service
-          image: compuslink/offer-service:latest
-          imagePullPolicy: Never
+          image: localhost:5000/compuslink-offer-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8084
           env:

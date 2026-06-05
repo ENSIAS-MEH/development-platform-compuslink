@@ -27,8 +27,8 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: compuslink/user-service:latest
-          imagePullPolicy: Never
+          image: localhost:5000/compuslink-user-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
           env:

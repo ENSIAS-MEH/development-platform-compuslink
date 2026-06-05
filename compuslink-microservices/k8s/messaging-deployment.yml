@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: messaging-service
-          image: compuslink/messaging-service:latest
-          imagePullPolicy: Never
+          image: localhost:5000/compuslink-messaging-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8086
           env:
