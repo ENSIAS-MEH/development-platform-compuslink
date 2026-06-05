@@ -1,20 +1,21 @@
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/ColocationServiceApplication.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/client/UserClient.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/controller/ColocPostController.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/dto/ColocAmenityDTO.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/dto/ColocImageDTO.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/dto/ColocPostDTO.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/AmenityType.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocAmenity.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocImage.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocInterest.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocPost.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocStatus.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/HousingType.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/InterestStatus.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/repository/ColocAmenityRepository.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/repository/ColocImageRepository.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/repository/ColocInterestRepository.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/repository/ColocPostRepository.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/service/ColocFileStorageService.java
-/Users/mourad/Desktop/Ensias/Projet Platforme/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/service/ColocPostService.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/ColocationServiceApplication.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/client/UserClient.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/config/WebConfig.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/controller/ColocPostController.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/dto/ColocAmenityDTO.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/dto/ColocImageDTO.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/dto/ColocPostDTO.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/AmenityType.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocAmenity.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocImage.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocInterest.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocPost.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/ColocStatus.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/HousingType.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/model/InterestStatus.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/repository/ColocAmenityRepository.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/repository/ColocImageRepository.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/repository/ColocInterestRepository.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/repository/ColocPostRepository.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/service/ColocFileStorageService.java
+/workspaces/development-platform-compuslink/compuslink-microservices/colocation-service/src/main/java/com/compuslink/colocation/service/ColocPostService.java
