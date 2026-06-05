@@ -1,4 +1,12 @@
 # Build output
+# Ignorer les dossiers de build Java
+**/target/
+**/*.jar
+**/*.war
+
+# Ignorer les fichiers temporaires de Minikube/Kubernetes
+.minikube/
+.kube/
 target/
 *.class
 .mtj.tmp/

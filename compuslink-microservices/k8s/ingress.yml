@@ -5,7 +5,7 @@ metadata:
   namespace: compuslink
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    # Utile si vos microservices ont besoin de traiter de gros uploads (fichiers de 10MB+)
+    # Utile pour traiter de gros uploads (fichiers de 10MB+)
     nginx.ingress.kubernetes.io/proxy-body-size: "30m"
 spec:
   ingressClassName: nginx

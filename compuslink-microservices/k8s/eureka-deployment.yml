@@ -15,7 +15,6 @@ spec:
     spec:
       containers:
         - name: eureka
-          # Remplacez par votre vrai nom d'image une fois pushée sur votre registre Docker
           image: compuslink/eureka-server:latest 
           imagePullPolicy: Never
           ports:
