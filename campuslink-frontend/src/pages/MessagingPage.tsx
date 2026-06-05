@@ -22,6 +22,16 @@ interface Message {
   isRead: boolean;
 }
 
+interface PublicProfile {
+  id: string;
+  fullName: string;
+  university: string | null;
+  city: string | null;
+  bio: string | null;
+  profilePicUrl: string | null;
+  role: string;
+}
+
 export default function MessagingPage() {
   const { user } = useAuth();
   const location = useLocation();
@@ -33,6 +43,9 @@ export default function MessagingPage() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [pollingActive, setPollingActive] = useState(true);
+  const [publicProfile, setPublicProfile] = useState<PublicProfile | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialMessageAttemptedRef = useRef(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -173,6 +186,21 @@ export default function MessagingPage() {
     setShowScrollButton(!isAtBottom);
   };
 
+  const openProfileModal = async () => {
+    if (!selectedConversation) return;
+    setShowProfileModal(true);
+    setLoadingProfile(true);
+    setPublicProfile(null);
+    try {
+      const { data } = await api.get(`/users/${selectedConversation.otherUserId}/public`);
+      setPublicProfile(data);
+    } catch (err) {
+      console.error("Erreur lors du chargement du profil", err);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
   // Scroll to bottom only when switching to a new conversation
   useEffect(() => {
     if (selectedConversation && selectedConversation.id !== currentConversationIdRef.current) {
@@ -255,8 +283,12 @@ export default function MessagingPage() {
           {selectedConversation ? (
             <>
               {/* Header */}
-              <div className="p-4 border-b border-gray-100 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold flex-shrink-0">
+              <button
+                onClick={openProfileModal}
+                className="p-4 border-b border-gray-100 flex items-center gap-3 text-left w-full hover:bg-gray-50 transition-colors"
+                title="Voir le profil"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold flex-shrink-0 overflow-hidden">
                   {selectedConversation.otherUserProfilePic ? (
                     <img
                       src={selectedConversation.otherUserProfilePic}
@@ -268,9 +300,10 @@ export default function MessagingPage() {
                   )}
                 </div>
                 <div>
-                  <p className="font-semibold">{selectedConversation.otherUserName}</p>
+                  <p className="font-semibold hover:text-primary transition-colors">{selectedConversation.otherUserName}</p>
+                  <p className="text-xs text-gray-400">Voir le profil</p>
                 </div>
-              </div>
+              </button>
 
               {/* Messages */}
               {!pollingActive && (
@@ -357,6 +390,71 @@ export default function MessagingPage() {
           )}
         </div>
       </div>
+
+      {/* Public profile modal */}
+      {showProfileModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowProfileModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-sm w-full p-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowProfileModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+
+            {loadingProfile ? (
+              <div className="py-12 text-center text-gray-500">Chargement...</div>
+            ) : publicProfile ? (
+              <div className="flex flex-col items-center text-center">
+                <div className="w-28 h-28 rounded-full bg-primary text-white flex items-center justify-center text-3xl font-bold overflow-hidden">
+                  {publicProfile.profilePicUrl ? (
+                    <img src={publicProfile.profilePicUrl} alt={publicProfile.fullName} className="w-full h-full object-cover" />
+                  ) : (
+                    publicProfile.fullName.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <h2 className="text-xl font-bold font-[Geist] mt-4">{publicProfile.fullName}</h2>
+                {publicProfile.role && (
+                  <span className="mt-1 text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
+                    {publicProfile.role}
+                  </span>
+                )}
+
+                <div className="w-full mt-6 space-y-3 text-left">
+                  {publicProfile.university && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="material-symbols-outlined text-[18px] text-gray-400">school</span>
+                      {publicProfile.university}
+                    </div>
+                  )}
+                  {publicProfile.city && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="material-symbols-outlined text-[18px] text-gray-400">location_on</span>
+                      {publicProfile.city}
+                    </div>
+                  )}
+                  {publicProfile.bio && (
+                    <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 leading-relaxed mt-2">
+                      {publicProfile.bio}
+                    </div>
+                  )}
+                  {!publicProfile.university && !publicProfile.city && !publicProfile.bio && (
+                    <p className="text-sm text-gray-400 text-center">Aucune information supplémentaire</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-gray-500">Profil indisponible</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

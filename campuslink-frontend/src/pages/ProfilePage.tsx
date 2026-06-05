@@ -154,7 +154,7 @@ export default function ProfilePage() {
       api.get("/events/my-events"),
       api.get("/events/my-participations"),
       api.get("/me/profile/cvs"),
-      api.get("/me/applications"),
+      api.get("/applications/mine"),
       api.get("/offers/my-offers"),
     ]).then(([profileRes, itemsRes, colocRes, savedRes, eventsRes, participationsRes, cvsRes, appsRes, offersRes]) => {
       if (profileRes.status === "fulfilled") {
