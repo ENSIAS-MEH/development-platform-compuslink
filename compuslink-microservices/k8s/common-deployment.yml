@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: compuslink-secrets
+  namespace: compuslink
+type: Opaque
+stringData:
+  jwt-secret: "your256bitsecretheyforjwtsigningpurposesexactly"
+  db-username: "mourad"
+  db-password: "" 
+  google-client-id: "test-client-id"
+  google-client-secret: "test-client-secret"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: compuslink-config
+  namespace: compuslink
+data:
+  EUREKA_URI: "http://eureka-service:8761/eureka/"
+  FRONTEND_URL: "http://localhost:5173"
+  BASE_URL: "http://localhost:8080"
+  UPLOAD_DIR: "uploads"

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: compuslink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: compuslink/api-gateway:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: jwt-secret
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: EUREKA_URI
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: FRONTEND_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-service
+  namespace: compuslink
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: api-gateway

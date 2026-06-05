@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: offer-service
+  namespace: compuslink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: offer-service
+  template:
+    metadata:
+      labels:
+        app: offer-service
+    spec:
+      containers:
+        - name: offer-service
+          image: compuslink/offer-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8084
+          env:
+            - name: DB_URL
+              value: "jdbc:postgresql://postgres:5432/compuslink_offers"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: db-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: db-password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: jwt-secret
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: EUREKA_URI
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: offer-service
+  namespace: compuslink
+spec:
+  ports:
+    - port: 8084
+      targetPort: 8084
+  selector:
+    app: offer-service

@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: marketplace-uploads-pvc
+  namespace: compuslink
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marketplace-service
+  namespace: compuslink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: marketplace-service
+  template:
+    metadata:
+      labels:
+        app: marketplace-service
+    spec:
+      containers:
+        - name: marketplace-service
+          image: compuslink/marketplace-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          env:
+            - name: DB_URL
+              value: "jdbc:postgresql://postgres:5432/compuslink_marketplace"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: db-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: db-password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: jwt-secret
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: EUREKA_URI
+            - name: UPLOAD_DIR
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: UPLOAD_DIR
+            - name: BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: BASE_URL
+          volumeMounts:
+            - name: uploads-volume
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads-volume
+          persistentVolumeClaim:
+            claimName: marketplace-uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: marketplace-service
+  namespace: compuslink
+spec:
+  ports:
+    - port: 8082
+      targetPort: 8082
+  selector:
+    app: marketplace-service
