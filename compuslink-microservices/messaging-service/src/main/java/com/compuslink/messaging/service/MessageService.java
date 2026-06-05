@@ -21,9 +21,14 @@ public class MessageService {
     public List<ConversationResponse> getConversations(UUID userId) {
         return convoRepo.findByUserId(userId).stream().map(c -> {
             UUID otherId = c.getUser1Id().equals(userId) ? c.getUser2Id() : c.getUser1Id();
-            String name; try { name = userClient.getUserSummary(otherId).getFullName(); } catch (Exception e) { name = "Unknown"; }
+            String name = "Unknown"; String profilePic = null;
+            try {
+                var summary = userClient.getUserSummary(otherId);
+                name = summary.getFullName();
+                profilePic = summary.getProfilePicUrl();
+            } catch (Exception ignored) {}
             return ConversationResponse.builder().id(c.getId()).otherUserId(otherId)
-                    .otherUserName(name).lastMessageAt(c.getLastMessageAt()).build();
+                    .otherUserName(name).otherUserProfilePic(profilePic).lastMessageAt(c.getLastMessageAt()).build();
         }).toList();
     }
 
