@@ -78,9 +78,19 @@ public class EventController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/cancel")
+    public EventResponse cancelEvent(@PathVariable UUID id, @AuthenticationPrincipal UserPrincipal principal) {
+        return eventService.cancelEvent(id, principal.getUser().getId());
+    }
+
     @GetMapping("/my-participations")
     public List<EventResponse> myParticipations(@AuthenticationPrincipal UserPrincipal principal) {
         return eventService.getMyParticipations(principal.getUser().getId());
+    }
+
+    @GetMapping("/{id}/participants")
+    public List<Map<String, Object>> getParticipants(@PathVariable UUID id, @AuthenticationPrincipal UserPrincipal principal) {
+        return eventService.getParticipants(id, principal.getUser().getId());
     }
 
     @GetMapping("/my-events")

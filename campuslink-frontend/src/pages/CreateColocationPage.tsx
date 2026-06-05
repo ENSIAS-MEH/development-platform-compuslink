@@ -52,7 +52,7 @@ export default function CreateColocationPage() {
       const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("Tu dois être connecté pour publier une annonce.");
 
-      const response = await fetch("http://localhost:8080/api/colocations", {
+      const response = await fetch("http://localhost:8080/api/coloc", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -78,7 +78,7 @@ export default function CreateColocationPage() {
           fileFormData.append("files", file); 
         });
 
-        const photoResponse = await fetch(`http://localhost:8080/api/colocations/${postId}/photos`, {
+        const photoResponse = await fetch(`http://localhost:8080/api/coloc/${postId}/photos`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}` },
           body: fileFormData

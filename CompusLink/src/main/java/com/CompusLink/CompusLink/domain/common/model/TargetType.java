@@ -4,5 +4,6 @@ public enum TargetType {
     ITEM,
     COLOC,
     OFFER,
+    EVENT,
     USER
 }

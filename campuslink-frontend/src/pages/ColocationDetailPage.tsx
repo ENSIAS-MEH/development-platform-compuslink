@@ -21,7 +21,7 @@ export default function ColocationDetailPage() {
           headers["Authorization"] = `Bearer ${token}`;
         }
 
-        const response = await fetch(`http://localhost:8080/api/colocations/${id}`, {
+        const response = await fetch(`http://localhost:8080/api/coloc/${id}`, {
           method: "GET",
           headers: headers
         });
@@ -50,7 +50,7 @@ export default function ColocationDetailPage() {
       const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("Vous devez être connecté pour exprimer votre intérêt.");
 
-      const response = await fetch(`http://localhost:8080/api/colocations/${id}/interests?message=${encodeURIComponent(interestMessage)}`, {
+      const response = await fetch(`http://localhost:8080/api/coloc/${id}/interests?message=${encodeURIComponent(interestMessage)}`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` }
       });

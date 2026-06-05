@@ -45,6 +45,8 @@ export default function OfferDetailPage() {
   const [cvUrl, setCvUrl] = useState<string | null>(null);
   const [uploadingCv, setUploadingCv] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [userCvs, setUserCvs] = useState<{ id: string; fileUrl: string; originalName: string; default: boolean }[]>([]);
+  const [selectedCvId, setSelectedCvId] = useState<string | null>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
 
   const isOwner = offer && user && offer.posterId === user.userId;
@@ -62,8 +64,14 @@ export default function OfferDetailPage() {
   const openApplyModal = async () => {
     if (!user) { navigate("/auth"); return; }
     try {
-      const { data } = await api.get("/me/profile");
-      setCvUrl(data.cvUrl);
+      const [profileRes, cvsRes] = await Promise.all([
+        api.get("/me/profile"),
+        api.get("/me/profile/cvs"),
+      ]);
+      setCvUrl(profileRes.data.cvUrl);
+      setUserCvs(cvsRes.data);
+      const defaultCv = cvsRes.data.find((cv: any) => cv.default);
+      setSelectedCvId(defaultCv ? defaultCv.id : cvsRes.data.length > 0 ? cvsRes.data[0].id : null);
     } catch {}
     setShowApply(true);
   };
@@ -88,7 +96,9 @@ export default function OfferDetailPage() {
       const formData = new FormData();
       formData.append("file", file);
       const { data } = await api.post("/me/profile/cv", formData);
-      setCvUrl(data.cvUrl);
+      setUserCvs((prev) => [data, ...prev]);
+      setSelectedCvId(data.id);
+      setCvUrl(data.fileUrl);
     } catch {
       alert("Erreur lors de l'upload du CV.");
     } finally {
@@ -97,10 +107,10 @@ export default function OfferDetailPage() {
   };
 
   const handleApply = async () => {
-    if (!cvUrl) { alert("Veuillez d'abord uploader un CV."); return; }
+    if (!selectedCvId && !cvUrl) { alert("Veuillez d'abord uploader un CV."); return; }
     setApplying(true);
     try {
-      await api.post(`/offers/${id}/applications`, { message: message || undefined });
+      await api.post(`/offers/${id}/applications`, { message: message || undefined, cvId: selectedCvId || undefined });
       setApplied(true);
       setShowApply(false);
     } catch (err: any) {
@@ -116,8 +126,6 @@ export default function OfferDetailPage() {
     if (days === 1) return "Hier";
     return `il y a ${days} jours`;
   };
-
-  const cvFileName = cvUrl ? decodeURIComponent(cvUrl.split("/").pop() || "CV") : null;
 
   if (loading) return <p className="text-center text-gray-400 py-20">Chargement...</p>;
   if (!offer) return <p className="text-center text-gray-500 py-20">Offre introuvable.</p>;
@@ -306,21 +314,24 @@ export default function OfferDetailPage() {
             {/* CV Section */}
             <div className="bg-gray-50 rounded-xl p-4 mt-6">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-sm">CV attaché</h4>
+                <h4 className="font-semibold text-sm">CV à envoyer</h4>
                 <button onClick={() => cvInputRef.current?.click()} className="text-xs text-primary font-medium flex items-center gap-1" disabled={uploadingCv}>
-                  <span className="material-symbols-outlined text-[14px]">{cvUrl ? "edit" : "upload"}</span>
-                  {uploadingCv ? "Upload..." : cvUrl ? "Mettre à jour" : "Uploader"}
+                  <span className="material-symbols-outlined text-[14px]">upload</span>
+                  {uploadingCv ? "Upload..." : "Ajouter un CV"}
                 </button>
                 <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleCvUpload} />
               </div>
-              {cvUrl ? (
-                <a href={cvUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-100 hover:border-primary transition-colors">
-                  <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{cvFileName}</p>
-                    <p className="text-xs text-gray-400">Cliquez pour voir</p>
-                  </div>
-                </a>
+              {userCvs.length > 0 ? (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {userCvs.map((cv) => (
+                    <label key={cv.id} className={`flex items-center gap-3 bg-white rounded-lg p-3 border cursor-pointer transition-colors ${selectedCvId === cv.id ? "border-primary ring-2 ring-primary/20" : "border-gray-100 hover:border-gray-300"}`}>
+                      <input type="radio" name="cv-select" checked={selectedCvId === cv.id} onChange={() => setSelectedCvId(cv.id)} className="accent-primary" />
+                      <span className="material-symbols-outlined text-red-500 text-[18px]">picture_as_pdf</span>
+                      <span className="text-sm font-medium truncate flex-1">{cv.originalName || "CV"}</span>
+                      {cv.default && <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full shrink-0">Par défaut</span>}
+                    </label>
+                  ))}
+                </div>
               ) : (
                 <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-dashed border-gray-300 cursor-pointer" onClick={() => cvInputRef.current?.click()}>
                   <span className="material-symbols-outlined text-gray-400">upload_file</span>
@@ -336,7 +347,7 @@ export default function OfferDetailPage() {
 
             <div className="flex items-center justify-end gap-3 mt-6">
               <button onClick={() => setShowApply(false)} className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl">Annuler</button>
-              <button onClick={handleApply} disabled={applying || !cvUrl} className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark flex items-center gap-2 disabled:opacity-50">
+              <button onClick={handleApply} disabled={applying || (!selectedCvId && !cvUrl)} className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark flex items-center gap-2 disabled:opacity-50">
                 {applying ? "Envoi..." : "Envoyer"} <span className="material-symbols-outlined text-[16px]">send</span>
               </button>
             </div>
