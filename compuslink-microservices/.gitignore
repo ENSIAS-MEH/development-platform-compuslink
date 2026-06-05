@@ -1,6 +1,12 @@
 # Build output
 target/
-
+*.class
+.mtj.tmp/
+*.jar
+*.war
+*.ear
+*.nar
+EOF
 # IDE
 .idea/
 *.iml
