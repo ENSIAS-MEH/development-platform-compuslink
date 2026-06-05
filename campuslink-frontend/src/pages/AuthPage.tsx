@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { API_ORIGIN } from "../services/api";
 
 export default function AuthPage() {
   const { user } = useAuth();
@@ -80,7 +81,7 @@ function SignInForm() {
   };
 
   const handleGoogle = () => {
-    window.location.href = "http://localhost:8080/oauth2/authorization/google";
+    window.location.href = `${API_ORIGIN}/oauth2/authorization/google`;
   };
 
   return (

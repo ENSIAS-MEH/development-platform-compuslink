@@ -5,17 +5,70 @@ metadata:
   namespace: compuslink
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    # Utile pour traiter de gros uploads (fichiers de 10MB+)
+    # Needed for the 10MB+ file uploads (CVs, item/event/coloc photos)
     nginx.ingress.kubernetes.io/proxy-body-size: "30m"
 spec:
+  # NOTE: requires the ingress-nginx controller. k3s ships Traefik by default —
+  # either install ingress-nginx, or start k3s with --disable traefik.
   ingressClassName: nginx
   rules:
     - http:
         paths:
-          - path: /
+          # --- API + auth + static uploads go to the API gateway ---
+          - path: /api
             pathType: Prefix
             backend:
               service:
                 name: gateway-service
                 port:
                   number: 8080
+          - path: /oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /login/oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /coloc-uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /event-uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /user-uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          # --- Everything else is the React SPA ---
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80

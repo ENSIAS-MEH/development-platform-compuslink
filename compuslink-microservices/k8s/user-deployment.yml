@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: user-uploads-pvc
+  namespace: compuslink
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,6 +32,8 @@ spec:
           ports:
             - containerPort: 8081
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=60.0 -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k"
             - name: DB_URL
               value: "jdbc:postgresql://postgres:5432/compuslink_users"
             - name: DB_USERNAME
@@ -57,6 +71,43 @@ spec:
                 configMapKeyRef:
                   name: compuslink-config
                   key: FRONTEND_URL
+            # user-service stores CVs and profile pictures, so it needs the
+            # upload dir + external base URL (same as marketplace/coloc/event).
+            - name: UPLOAD_DIR
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: UPLOAD_DIR
+            - name: BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: BASE_URL
+          volumeMounts:
+            - name: user-uploads-volume
+              mountPath: /app/uploads
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+          readinessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            failureThreshold: 3
+      volumes:
+        - name: user-uploads-volume
+          persistentVolumeClaim:
+            claimName: user-uploads-pvc
 ---
 apiVersion: v1
 kind: Service

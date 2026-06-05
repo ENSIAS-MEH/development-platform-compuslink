@@ -1,6 +1,10 @@
 import axios from "axios";
 
-const API_BASE = "http://localhost:8080/api";
+// In production the frontend is served from the same Ingress host as the API,
+// so these are set to relative paths at build time (VITE_API_URL=/api,
+// VITE_API_ORIGIN=""). They fall back to localhost:8080 for local `npm run dev`.
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080/api";
+export const API_ORIGIN = import.meta.env.VITE_API_ORIGIN ?? "http://localhost:8080";
 
 const api = axios.create({ baseURL: API_BASE });
 

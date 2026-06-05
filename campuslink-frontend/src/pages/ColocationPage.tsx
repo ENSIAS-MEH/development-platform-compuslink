@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_ORIGIN } from "../services/api";
 import { Link } from "react-router-dom";
 
 const cities = ["Toutes", "Casablanca", "Rabat", "Marrakech", "Fès", "Tanger"];
@@ -7,15 +8,9 @@ export default function ColocationPage() {
   const [activeCity, setActiveCity] = useState("Toutes");
   const [furnishedFilter, setFurnishedFilter] = useState("");
   const [spotsFilter, setSpotsFilter] = useState("");
-  const [colocations, setColocations] = useState([]);
+  const [colocations, setColocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // ÉTAPE REFAITE : Fonction simplifiée qui utilise directement l'adresse complète du serveur
-  const getImageUrl = (url: string) => {
-    if (!url) return "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500";
-    return url;
-  };
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchColocations = async () => {
@@ -34,7 +29,7 @@ export default function ColocationPage() {
         if (furnishedFilter !== "") params.append("furnished", furnishedFilter);
         if (spotsFilter !== "") params.append("spotsNeeded", spotsFilter);
 
-        const response = await fetch(`http://localhost:8080/api/coloc?${params.toString()}`, {
+        const response = await fetch(`${API_ORIGIN}/api/coloc?${params.toString()}`, {
           method: "GET",
           headers: headers
         });

@@ -32,6 +32,8 @@ spec:
           ports:
             - containerPort: 8085
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=60.0 -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k"
             - name: DB_URL
               value: "jdbc:postgresql://postgres:5432/compuslink_events"
             - name: DB_USERNAME
@@ -67,6 +69,24 @@ spec:
           volumeMounts:
             - name: event-uploads-volume
               mountPath: /app/uploads
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+          readinessProbe:
+            tcpSocket:
+              port: 8085
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: 8085
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            failureThreshold: 3
       volumes:
         - name: event-uploads-volume
           persistentVolumeClaim:
