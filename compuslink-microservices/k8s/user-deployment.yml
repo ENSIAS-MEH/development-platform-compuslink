@@ -71,6 +71,11 @@ spec:
                 configMapKeyRef:
                   name: compuslink-config
                   key: FRONTEND_URL
+            - name: OAUTH_REDIRECT_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: OAUTH_REDIRECT_URI
             # user-service stores CVs and profile pictures, so it needs the
             # upload dir + external base URL (same as marketplace/coloc/event).
             - name: UPLOAD_DIR

@@ -28,6 +28,7 @@ data:
   # "http://192.168.1.50" or "http://campuslink.mydomain.com".
   # The address browsers actually use to reach the cluster (here: the server's
   # Tailscale IP). Used for gateway CORS and for building uploaded-file URLs.
-  FRONTEND_URL: "http://100.74.204.12"
-  BASE_URL: "http://100.74.204.12"
+  FRONTEND_URL: "https://myrh.taile206c4.ts.net"
+  BASE_URL: "https://myrh.taile206c4.ts.net"
+  OAUTH_REDIRECT_URI: "https://myrh.taile206c4.ts.net/login/oauth2/code/google"
   UPLOAD_DIR: "uploads"
