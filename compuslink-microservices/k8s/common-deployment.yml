@@ -8,8 +8,9 @@ stringData:
   jwt-secret: "your256bitsecretheyforjwtsigningpurposesexactly"
   db-username: "mourad"
   db-password: ""
-  google-client-id: "test-client-id"
-  google-client-secret: "test-client-secret"
+  # Google OAuth creds live in a separate secret named 'google-oauth' that is NOT
+  # committed here (created manually on the server), so the pipeline never overwrites
+  # them and they never land in git. See user-deployment.yml.
 ---
 apiVersion: v1
 kind: ConfigMap
