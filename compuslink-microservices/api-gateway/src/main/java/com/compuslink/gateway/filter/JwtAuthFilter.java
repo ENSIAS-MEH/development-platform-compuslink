@@ -20,7 +20,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     // Public endpoints that don't require authentication
     private static final List<String> OPEN_PATHS = List.of(
             "/api/auth/login", "/api/auth/register", "/api/auth/refresh",
-            "/api/auth/oauth2", "/oauth2", "/uploads", "/coloc-uploads", "/event-uploads", "/user-uploads"
+            "/api/auth/oauth2", "/oauth2", "/login/oauth2", "/uploads", "/coloc-uploads", "/event-uploads", "/user-uploads"
     );
 
     public JwtAuthFilter(JwtUtil jwtUtil) {
