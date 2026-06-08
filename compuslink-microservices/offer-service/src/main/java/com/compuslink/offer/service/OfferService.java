@@ -86,6 +86,11 @@ public class OfferService {
             throw new AccessDeniedException("You do not own this offer");
     }
 
+    // Internal: used by common-service (via Feign) to validate save/report targets.
+    public boolean existsById(UUID id) {
+        return offerRepo.existsById(id);
+    }
+
     private OfferResponse toResponse(Offer o, long applicationCount) {
         return OfferResponse.builder()
                 .id(o.getId()).posterId(o.getPosterId()).type(o.getType())
