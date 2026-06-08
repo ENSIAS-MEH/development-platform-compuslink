@@ -69,7 +69,4 @@ public class ColocPostController {
     public ResponseEntity<Void> uploadPhotos(@PathVariable UUID id, @RequestParam("files") List<MultipartFile> files, @RequestHeader("X-User-Id") UUID userId) {
         service.uploadPhotos(id, files, userId); return ResponseEntity.status(HttpStatus.CREATED).build();
     }
-
-    @GetMapping("/internal/coloc/{id}/exists")
-    public boolean exists(@PathVariable UUID id) { return service.existsById(id); }
 }

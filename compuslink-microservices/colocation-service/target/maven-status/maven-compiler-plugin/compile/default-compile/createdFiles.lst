@@ -5,6 +5,7 @@ com/compuslink/colocation/repository/ColocImageRepository.class
 com/compuslink/colocation/model/ColocImage.class
 com/compuslink/colocation/model/ColocInterest.class
 com/compuslink/colocation/dto/ColocAmenityDTO.class
+com/compuslink/colocation/controller/InternalColocController.class
 com/compuslink/colocation/model/ColocStatus.class
 com/compuslink/colocation/dto/ColocPostDTO$ColocPostDTOBuilder.class
 com/compuslink/colocation/repository/ColocInterestRepository.class
@@ -15,8 +16,8 @@ com/compuslink/colocation/model/ColocInterest$ColocInterestBuilder.class
 com/compuslink/colocation/dto/ColocPostDTO.class
 com/compuslink/colocation/service/ColocFileStorageService.class
 com/compuslink/colocation/service/ColocPostService.class
-com/compuslink/colocation/repository/ColocAmenityRepository.class
 com/compuslink/colocation/dto/ColocImageDTO.class
+com/compuslink/colocation/repository/ColocAmenityRepository.class
 com/compuslink/colocation/ColocationServiceApplication.class
 com/compuslink/colocation/repository/ColocPostRepository.class
 com/compuslink/colocation/model/ColocAmenity$ColocAmenityBuilder.class

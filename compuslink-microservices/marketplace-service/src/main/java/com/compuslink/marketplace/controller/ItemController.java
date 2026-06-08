@@ -75,10 +75,4 @@ public class ItemController {
     public List<ItemSummaryResponse> myItems(@RequestHeader("X-User-Id") UUID userId) {
         return itemService.getMyItems(userId);
     }
-
-    // Internal endpoint for common-service
-    @GetMapping("/internal/items/{id}/exists")
-    public boolean exists(@PathVariable UUID id) {
-        return itemService.existsById(id);
-    }
 }
