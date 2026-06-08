@@ -1,3 +1,4 @@
+com/compuslink/colocation/dto/ColocInterestDetailDTO.class
 com/compuslink/colocation/model/AmenityType.class
 com/compuslink/colocation/model/ColocImage$ColocImageBuilder.class
 com/compuslink/colocation/client/UserClient.class
@@ -7,7 +8,9 @@ com/compuslink/colocation/model/ColocInterest.class
 com/compuslink/colocation/dto/ColocAmenityDTO.class
 com/compuslink/colocation/controller/InternalColocController.class
 com/compuslink/colocation/model/ColocStatus.class
+com/compuslink/colocation/repository/ColocMessageRepository.class
 com/compuslink/colocation/dto/ColocPostDTO$ColocPostDTOBuilder.class
+com/compuslink/colocation/model/ColocMessage$ColocMessageBuilder.class
 com/compuslink/colocation/repository/ColocInterestRepository.class
 com/compuslink/colocation/model/ColocPost.class
 com/compuslink/colocation/model/InterestStatus.class
@@ -15,6 +18,7 @@ com/compuslink/colocation/config/WebConfig.class
 com/compuslink/colocation/model/ColocInterest$ColocInterestBuilder.class
 com/compuslink/colocation/dto/ColocPostDTO.class
 com/compuslink/colocation/service/ColocFileStorageService.class
+com/compuslink/colocation/dto/ColocMessageDTO.class
 com/compuslink/colocation/service/ColocPostService.class
 com/compuslink/colocation/dto/ColocImageDTO.class
 com/compuslink/colocation/repository/ColocAmenityRepository.class
@@ -23,5 +27,10 @@ com/compuslink/colocation/repository/ColocPostRepository.class
 com/compuslink/colocation/model/ColocAmenity$ColocAmenityBuilder.class
 com/compuslink/colocation/model/HousingType.class
 com/compuslink/colocation/model/ColocPost$ColocPostBuilder.class
+com/compuslink/colocation/dto/ColocInterestDTO.class
+com/compuslink/colocation/dto/ColocInterestDetailDTO$ColocInterestDetailDTOBuilder.class
+com/compuslink/colocation/model/ColocMessage.class
+com/compuslink/colocation/dto/ColocMessageDTO$ColocMessageDTOBuilder.class
 com/compuslink/colocation/controller/ColocPostController.class
 com/compuslink/colocation/model/ColocAmenity.class
+com/compuslink/colocation/dto/ColocInterestDTO$ColocInterestDTOBuilder.class

@@ -29,6 +29,8 @@ public class ColocPost {
     @Builder.Default @Column(nullable = false) private Boolean furnished = false;
     @Builder.Default @Enumerated(EnumType.STRING) @Column(nullable = false) private ColocStatus status = ColocStatus.OPEN;
     @Column(name = "cover_url", length = 500) private String coverUrl;
+    @Builder.Default @Column(name = "is_blocked", nullable = false) private Boolean isBlocked = false;
+    @Column(name = "blocked_at") private OffsetDateTime blockedAt;
     @CreationTimestamp @Column(name = "created_at", nullable = false, updatable = false) private OffsetDateTime createdAt;
     @UpdateTimestamp @Column(name = "updated_at", nullable = false) private OffsetDateTime updatedAt;
 }

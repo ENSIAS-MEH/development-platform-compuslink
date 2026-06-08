@@ -26,6 +26,8 @@ public class ColocPostDTO {
     private Boolean furnished;
     private ColocStatus status;
     private String coverUrl;
+    private Boolean isBlocked;
+    private OffsetDateTime blockedAt;
     private Long totalInterests;
     private Long pendingInterests;
     private List<ColocAmenityDTO> amenities;

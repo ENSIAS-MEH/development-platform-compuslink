@@ -15,7 +15,6 @@ public interface ColocPostRepository extends JpaRepository<ColocPost, UUID> {
     List<ColocPost> findByPosterId(UUID posterId);
 
     @Query("SELECT c FROM ColocPost c WHERE c.status = 'OPEN' " +
-            "AND (:currentUserId IS NULL OR c.posterId != :currentUserId) " +
             "AND (:city IS NULL OR c.city = :city) " +
             "AND (:type IS NULL OR c.housingType = :type) " +
             "AND (:furnished IS NULL OR c.furnished = :furnished) " +
