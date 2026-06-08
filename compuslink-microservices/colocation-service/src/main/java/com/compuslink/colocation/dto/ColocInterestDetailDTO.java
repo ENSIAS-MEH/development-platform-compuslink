@@ -14,6 +14,7 @@ public class ColocInterestDetailDTO {
     private UUID id;
     private UUID postId;
     private String postTitle;
+    private UUID posterId;
     private String posterName;
     private Boolean postBlocked;
     private UUID userId;

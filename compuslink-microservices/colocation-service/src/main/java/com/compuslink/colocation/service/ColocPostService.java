@@ -138,6 +138,7 @@ public class ColocPostService {
                     List<ColocMessage> messages = messageRepo.findByInterestIdOrderByCreatedAtAsc(interest.getId());
                     return ColocInterestDetailDTO.builder().id(interest.getId()).postId(interest.getPostId())
                             .postTitle(post != null ? post.getTitle() : "Post supprimé")
+                            .posterId(post != null ? post.getPosterId() : null)
                             .posterName(post != null ? getPosterName(post.getPosterId()) : "Unknown")
                             .postBlocked(post != null ? post.getIsBlocked() : false)
                             .userId(interest.getUserId()).userName(getUserName(interest.getUserId()))
@@ -159,7 +160,7 @@ public class ColocPostService {
 
         List<ColocMessage> messages = messageRepo.findByInterestIdOrderByCreatedAtAsc(interestId);
         return ColocInterestDetailDTO.builder().id(interest.getId()).postId(interest.getPostId())
-                .postTitle(post.getTitle()).posterName(getPosterName(post.getPosterId()))
+                .postTitle(post.getTitle()).posterId(post.getPosterId()).posterName(getPosterName(post.getPosterId()))
                 .postBlocked(post.getIsBlocked())
                 .userId(interest.getUserId()).userName(getUserName(interest.getUserId()))
                 .initialMessage(interest.getMessage()).status(interest.getStatus()).createdAt(interest.getCreatedAt())
