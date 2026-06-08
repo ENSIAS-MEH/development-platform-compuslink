@@ -1,5 +1,7 @@
 package com.compuslink.colocation.controller;
 
+import com.compuslink.colocation.dto.ColocInterestDTO;
+import com.compuslink.colocation.dto.ColocInterestDetailDTO;
 import com.compuslink.colocation.dto.ColocPostDTO;
 import com.compuslink.colocation.model.HousingType;
 import com.compuslink.colocation.model.InterestStatus;
@@ -68,6 +70,51 @@ public class ColocPostController {
     @PostMapping(value = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadPhotos(@PathVariable UUID id, @RequestParam("files") List<MultipartFile> files, @RequestHeader("X-User-Id") UUID userId) {
         service.uploadPhotos(id, files, userId); return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/{id}/interests")
+    public List<ColocInterestDTO> getInterests(@PathVariable UUID id, @RequestHeader("X-User-Id") UUID userId) {
+        return service.getInterests(id, userId);
+    }
+
+    @GetMapping("/my-interests")
+    public List<ColocInterestDetailDTO> getMyInterests(@RequestHeader("X-User-Id") UUID userId) {
+        return service.getMyInterests(userId);
+    }
+
+    @GetMapping("/interests/{interestId}/detail")
+    public ColocInterestDetailDTO getInterestDetail(@PathVariable UUID interestId, @RequestHeader("X-User-Id") UUID userId) {
+        return service.getInterestDetail(interestId, userId);
+    }
+
+    @PostMapping("/interests/{interestId}/message")
+    public ResponseEntity<Void> sendMessage(@PathVariable UUID interestId, @RequestParam String content, @RequestHeader("X-User-Id") UUID userId) {
+        service.sendMessage(interestId, content, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PatchMapping("/interests/{interestId}/accept")
+    public ResponseEntity<Void> acceptInterest(@PathVariable UUID interestId, @RequestHeader("X-User-Id") UUID userId) {
+        service.handleInterestStatus(interestId, InterestStatus.ACCEPTED, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/interests/{interestId}/reject")
+    public ResponseEntity<Void> rejectInterest(@PathVariable UUID interestId, @RequestHeader("X-User-Id") UUID userId) {
+        service.handleInterestStatus(interestId, InterestStatus.REJECTED, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/block")
+    public ResponseEntity<Void> blockPost(@PathVariable UUID id, @RequestHeader("X-User-Id") UUID userId) {
+        service.blockPost(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/unblock")
+    public ResponseEntity<Void> unblockPost(@PathVariable UUID id, @RequestHeader("X-User-Id") UUID userId) {
+        service.unblockPost(id, userId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/internal/coloc/{id}/exists")

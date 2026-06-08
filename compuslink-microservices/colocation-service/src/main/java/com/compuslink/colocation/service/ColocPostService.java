@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,7 @@ public class ColocPostService {
     private final ColocInterestRepository interestRepo;
     private final ColocAmenityRepository amenityRepo;
     private final ColocFileStorageService fileStorage;
+    private final ColocMessageRepository messageRepo;
     private final UserClient userClient;
 
     public ColocPostDTO createPost(ColocPostDTO req, UUID posterId) {
@@ -119,10 +121,90 @@ public class ColocPostService {
         interestRepo.save(ColocInterest.builder().postId(postId).userId(userId).message(message).build());
     }
 
+    public List<ColocInterestDTO> getInterests(UUID postId, UUID userId) {
+        ColocPost post = postRepo.findById(postId).orElseThrow(() -> new EntityNotFoundException("Post not found"));
+        if (!post.getPosterId().equals(userId)) throw new AccessDeniedException("Not authorized");
+        return interestRepo.findByPostId(postId).stream()
+                .map(i -> ColocInterestDTO.builder().id(i.getId()).userId(i.getUserId())
+                        .userName(getUserName(i.getUserId())).message(i.getMessage())
+                        .status(i.getStatus()).createdAt(i.getCreatedAt()).build())
+                .collect(Collectors.toList());
+    }
+
+    public List<ColocInterestDetailDTO> getMyInterests(UUID userId) {
+        return interestRepo.findByUserId(userId).stream()
+                .map(interest -> {
+                    ColocPost post = postRepo.findById(interest.getPostId()).orElse(null);
+                    List<ColocMessage> messages = messageRepo.findByInterestIdOrderByCreatedAtAsc(interest.getId());
+                    return ColocInterestDetailDTO.builder().id(interest.getId()).postId(interest.getPostId())
+                            .postTitle(post != null ? post.getTitle() : "Post supprimé")
+                            .posterName(post != null ? getPosterName(post.getPosterId()) : "Unknown")
+                            .postBlocked(post != null ? post.getIsBlocked() : false)
+                            .userId(interest.getUserId()).userName(getUserName(interest.getUserId()))
+                            .initialMessage(interest.getMessage()).status(interest.getStatus())
+                            .createdAt(interest.getCreatedAt())
+                            .messages(messages.stream()
+                                    .map(m -> ColocMessageDTO.builder().id(m.getId()).senderId(m.getSenderId())
+                                            .senderName(getUserName(m.getSenderId())).content(m.getContent())
+                                            .createdAt(m.getCreatedAt()).build())
+                                    .collect(Collectors.toList()))
+                            .build();
+                }).collect(Collectors.toList());
+    }
+
+    public ColocInterestDetailDTO getInterestDetail(UUID interestId, UUID userId) {
+        ColocInterest interest = interestRepo.findById(interestId).orElseThrow(() -> new EntityNotFoundException("Interest not found"));
+        ColocPost post = postRepo.findById(interest.getPostId()).orElseThrow(() -> new EntityNotFoundException("Post not found"));
+        if (!post.getPosterId().equals(userId) && !interest.getUserId().equals(userId)) throw new AccessDeniedException("Not authorized");
+
+        List<ColocMessage> messages = messageRepo.findByInterestIdOrderByCreatedAtAsc(interestId);
+        return ColocInterestDetailDTO.builder().id(interest.getId()).postId(interest.getPostId())
+                .postTitle(post.getTitle()).posterName(getPosterName(post.getPosterId()))
+                .postBlocked(post.getIsBlocked())
+                .userId(interest.getUserId()).userName(getUserName(interest.getUserId()))
+                .initialMessage(interest.getMessage()).status(interest.getStatus()).createdAt(interest.getCreatedAt())
+                .messages(messages.stream()
+                        .map(m -> ColocMessageDTO.builder().id(m.getId()).senderId(m.getSenderId())
+                                .senderName(getUserName(m.getSenderId())).content(m.getContent())
+                                .createdAt(m.getCreatedAt()).build())
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
+    public void sendMessage(UUID interestId, String content, UUID userId) {
+        ColocInterest interest = interestRepo.findById(interestId).orElseThrow(() -> new EntityNotFoundException("Interest not found"));
+        ColocPost post = postRepo.findById(interest.getPostId()).orElseThrow(() -> new EntityNotFoundException("Post not found"));
+        if (!post.getPosterId().equals(userId) && !interest.getUserId().equals(userId)) throw new AccessDeniedException("Not authorized");
+        messageRepo.save(ColocMessage.builder().interestId(interestId).senderId(userId).content(content).build());
+    }
+
+    public void blockPost(UUID postId, UUID userId) {
+        ColocPost post = postRepo.findById(postId).orElseThrow(() -> new EntityNotFoundException("Post not found"));
+        if (!post.getPosterId().equals(userId)) throw new AccessDeniedException("Not authorized");
+        post.setIsBlocked(true);
+        post.setBlockedAt(OffsetDateTime.now());
+        post.setStatus(ColocStatus.FULL);
+        postRepo.save(post);
+    }
+
+    public void unblockPost(UUID postId, UUID userId) {
+        ColocPost post = postRepo.findById(postId).orElseThrow(() -> new EntityNotFoundException("Post not found"));
+        if (!post.getPosterId().equals(userId)) throw new AccessDeniedException("Not authorized");
+        post.setIsBlocked(false);
+        post.setBlockedAt(null);
+        post.setStatus(ColocStatus.OPEN);
+        postRepo.save(post);
+    }
+
     public boolean existsById(UUID id) { return postRepo.existsById(id); }
 
     private String getPosterName(UUID posterId) {
         try { return userClient.getUserSummary(posterId).getFullName(); }
+        catch (Exception e) { return "Unknown"; }
+    }
+
+    private String getUserName(UUID userId) {
+        try { return userClient.getUserSummary(userId).getFullName(); }
         catch (Exception e) { return "Unknown"; }
     }
 
@@ -131,7 +213,8 @@ public class ColocPostService {
                 .title(p.getTitle()).description(p.getDescription()).city(p.getCity()).address(p.getAddress())
                 .startDate(p.getStartDate()).spotsNeeded(p.getSpotsNeeded()).spotsConfirmed(p.getSpotsConfirmed())
                 .housingType(p.getHousingType()).rentPerPerson(p.getRentPerPerson()).furnished(p.getFurnished())
-                .status(p.getStatus()).coverUrl(p.getCoverUrl()).totalInterests(total).pendingInterests(pending)
+                .status(p.getStatus()).coverUrl(p.getCoverUrl()).isBlocked(p.getIsBlocked()).blockedAt(p.getBlockedAt())
+                .totalInterests(total).pendingInterests(pending)
                 .amenities(amenities).images(images).createdAt(p.getCreatedAt()).build();
     }
 
@@ -142,6 +225,7 @@ public class ColocPostService {
                 .title(p.getTitle()).description(p.getDescription()).city(p.getCity()).address(p.getAddress())
                 .startDate(p.getStartDate()).spotsNeeded(p.getSpotsNeeded()).spotsConfirmed(p.getSpotsConfirmed())
                 .housingType(p.getHousingType()).rentPerPerson(p.getRentPerPerson()).furnished(p.getFurnished())
-                .status(p.getStatus()).coverUrl(p.getCoverUrl()).amenities(amenities).createdAt(p.getCreatedAt()).build();
+                .status(p.getStatus()).coverUrl(p.getCoverUrl()).isBlocked(p.getIsBlocked()).blockedAt(p.getBlockedAt())
+                .amenities(amenities).createdAt(p.getCreatedAt()).build();
     }
 }
