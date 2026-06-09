@@ -1,22 +1,21 @@
 import { useEffect, useState } from "react";
-import { API_ORIGIN } from "../services/api";
-import { Link, useParams } from "react-router-dom";
+import api, { API_ORIGIN } from "../services/api";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ColocationDetailPage() {
   const { user } = useAuth();
   const { id } = useParams();
+  const navigate = useNavigate();
   const [coloc, setColoc] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userToken, setUserToken] = useState<string | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
 
-  const [interestMessage, setInterestMessage] = useState("Bonjour, je suis très intéressé par votre colocation !");
   const [sendingInterest, setSendingInterest] = useState(false);
   const [interestSuccess, setInterestSuccess] = useState(false);
   const [interests, setInterests] = useState<any[]>([]);
-  const [loadingInterests, setLoadingInterests] = useState(false);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -55,7 +54,6 @@ export default function ColocationDetailPage() {
   useEffect(() => {
     const fetchInterests = async () => {
       if (!coloc || !userToken || coloc.posterId !== user?.userId) return;
-      setLoadingInterests(true);
       try {
         const response = await fetch(`${API_ORIGIN}/api/coloc/${id}/interests`, {
           headers: { "Authorization": `Bearer ${userToken}` }
@@ -66,8 +64,6 @@ export default function ColocationDetailPage() {
         }
       } catch (err) {
         console.error("Failed to load interests", err);
-      } finally {
-        setLoadingInterests(false);
       }
     };
     fetchInterests();
@@ -80,7 +76,11 @@ export default function ColocationDetailPage() {
       const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("Vous devez être connecté pour exprimer votre intérêt.");
 
-      const response = await fetch(`${API_ORIGIN}/api/coloc/${id}/interests?message=${encodeURIComponent(interestMessage)}`, {
+      // Mirror the marketplace "Contacter le vendeur" flow: the conversation in the
+      // central messaging carries the message, so the interest just uses a standard
+      // greeting instead of a free-text accompanying message.
+      const greeting = `Bonjour, je m'intéresse à ${coloc.title}`;
+      const response = await fetch(`${API_ORIGIN}/api/coloc/${id}/interests?message=${encodeURIComponent(greeting)}`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -89,6 +89,19 @@ export default function ColocationDetailPage() {
 
       setInterestSuccess(true);
       setColoc((prev: any) => ({ ...prev, pendingInterests: (prev.pendingInterests || 0) + 1 }));
+
+      // Send the greeting into the central messaging directly. We can't rely on
+      // MessagingPage's auto-send (it only fires for brand-new conversations), so a
+      // returning applicant who already has a thread with the poster would otherwise
+      // get no message. Then open that conversation.
+      if (coloc?.posterId) {
+        try {
+          await api.post(`/messages/${coloc.posterId}`, { content: greeting });
+        } catch (e) {
+          console.error("Failed to send interest message", e);
+        }
+        navigate("/messages", { state: { sellerId: coloc.posterId } });
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -302,22 +315,14 @@ export default function ColocationDetailPage() {
                 Intérêt envoyé avec succès !
               </div>
             ) : (
-              <div className="space-y-3">
-                  <label className="text-xs font-medium text-gray-500">Message d'accompagnement :</label>
-                <textarea
-                  value={interestMessage}
-                  onChange={(e) => setInterestMessage(e.target.value)}
-                    className="w-full text-xs p-3 border border-gray-200 rounded-xl resize-none h-20 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  />
-                <button
-                  onClick={handleExpressInterest}
-                  disabled={sendingInterest}
-                  className="w-full bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300"
-                >
-                  {sendingInterest ? "Envoi..." : "Express Interest"}
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </button>
-              </div>
+              <button
+                onClick={handleExpressInterest}
+                disabled={sendingInterest}
+                className="w-full bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300"
+              >
+                {sendingInterest ? "Envoi..." : "Express Interest"}
+                <span className="material-symbols-outlined text-[16px]">chat_bubble_outline</span>
+              </button>
             )}
           </div>
 
@@ -330,7 +335,6 @@ export default function ColocationDetailPage() {
                 </h3>
                 <button
                   onClick={() => {
-                    setLoadingInterests(true);
                     const fetchInterests = async () => {
                       try {
                         const response = await fetch(`${API_ORIGIN}/api/coloc/${id}/interests`, {
@@ -342,8 +346,6 @@ export default function ColocationDetailPage() {
                         }
                       } catch (err) {
                         console.error("Failed to refresh interests", err);
-                      } finally {
-                        setLoadingInterests(false);
                       }
                     };
                     fetchInterests();
@@ -363,10 +365,13 @@ export default function ColocationDetailPage() {
                 {interests.map(interest => (
                   <div key={interest.id} className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{interest.userName}</p>
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{interest.message}</p>
-                      </div>
+                      <button
+                        onClick={() => navigate("/messages", { state: { sellerId: interest.userId } })}
+                        className="flex-1 text-left font-medium text-sm text-primary hover:underline"
+                        title="Ouvrir la conversation"
+                      >
+                        {interest.userName}
+                      </button>
                       <span className={`ml-2 text-xs font-semibold px-2 py-1 rounded flex-shrink-0 ${
                         interest.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                         interest.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' :

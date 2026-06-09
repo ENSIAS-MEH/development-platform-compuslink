@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { API_ORIGIN } from "../services/api";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const cities = ["Toutes", "Casablanca", "Rabat", "Marrakech", "Fès", "Tanger"];
 
 export default function ColocationPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeCity, setActiveCity] = useState("Toutes");
   const [furnishedFilter, setFurnishedFilter] = useState("");
   const [spotsFilter, setSpotsFilter] = useState("");
@@ -129,7 +130,7 @@ export default function ColocationPage() {
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                📋 Mes annonces
+                Mes annonces
               </button>
               <button
                 onClick={() => { setShowMyInterests(!showMyInterests); setShowMyPosts(false); }}
@@ -139,7 +140,7 @@ export default function ColocationPage() {
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                💌 Mes candidatures
+                Mes candidatures
               </button>
             </>
           )}
@@ -380,25 +381,6 @@ export default function ColocationPage() {
                     </div>
                   )}
 
-                  <p className="text-sm text-gray-600 mb-4">
-                    <strong>Votre message :</strong> {interest.initialMessage}
-                  </p>
-
-                  {interest.messages && interest.messages.length > 0 && (
-                    <div className="bg-gray-50 rounded-xl p-4 mb-4 max-h-48 overflow-y-auto">
-                      <p className="text-xs font-semibold text-gray-600 mb-3">Messages ({interest.messages.length})</p>
-                      <div className="space-y-2">
-                        {interest.messages.map((msg: any) => (
-                          <div key={msg.id} className="text-xs">
-                            <p className="font-medium text-gray-700">{msg.senderName}</p>
-                            <p className="text-gray-600 mt-1">{msg.content}</p>
-                            <p className="text-gray-400 mt-0.5">{new Date(msg.createdAt).toLocaleDateString("fr-FR")}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   <div className="flex gap-3">
                     <Link
                       to={`/colocation/${interest.postId}`}
@@ -406,9 +388,9 @@ export default function ColocationPage() {
                     >
                       Voir l'annonce
                     </Link>
-                    {interest.status === 'ACCEPTED' && (
+                    {interest.posterId && (
                       <button
-                        onClick={() => alert("Messagerie à ajouter dans la version complète")}
+                        onClick={() => navigate("/messages", { state: { sellerId: interest.posterId } })}
                         className="flex-1 bg-blue-100 text-blue-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-200 transition-colors"
                       >
                         Discuter
