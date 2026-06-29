@@ -1,0 +1,68 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/api/auth/**,/api/users/**,/api/me/**,/oauth2/**,/login/oauth2/**
+            - id: user-uploads
+              uri: lb://user-service
+              predicates:
+                - Path=/user-uploads/**
+            - id: marketplace-service
+              uri: lb://marketplace-service
+              predicates:
+                - Path=/api/items/**,/api/marketplace/**
+            - id: marketplace-uploads
+              uri: lb://marketplace-service
+              predicates:
+                - Path=/uploads/**
+            - id: colocation-service
+              uri: lb://colocation-service
+              predicates:
+                - Path=/api/coloc/**
+            - id: colocation-uploads
+              uri: lb://colocation-service
+              predicates:
+                - Path=/coloc-uploads/**
+            - id: offer-service
+              uri: lb://offer-service
+              predicates:
+                - Path=/api/offers/**,/api/applications/**
+            - id: event-uploads
+              uri: lb://event-service
+              predicates:
+                - Path=/event-uploads/**
+            - id: event-service
+              uri: lb://event-service
+              predicates:
+                - Path=/api/events/**
+            - id: messaging-service
+              uri: lb://messaging-service
+              predicates:
+                - Path=/api/messages/**,/api/conversations/**
+            - id: common-service
+              uri: lb://common-service
+              predicates:
+                - Path=/api/reports/**,/api/saved/**
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+
+jwt:
+  secret: ${JWT_SECRET:your256bitsecretheyforjwtsigningpurposesexactly}
+
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}

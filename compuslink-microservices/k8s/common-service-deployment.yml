@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: common-service
+  namespace: compuslink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: common-service
+  template:
+    metadata:
+      labels:
+        app: common-service
+    spec:
+      containers:
+        - name: common-service
+          image: localhost:5000/compuslink-common-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8087
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=60.0 -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k"
+            - name: DB_URL
+              value: "jdbc:postgresql://postgres:5432/compuslink_common"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: db-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: db-password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: compuslink-secrets
+                  key: jwt-secret
+            - name: EUREKA_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: compuslink-config
+                  key: EUREKA_URI
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+          readinessProbe:
+            tcpSocket:
+              port: 8087
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: 8087
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: common-service
+  namespace: compuslink
+spec:
+  ports:
+    - port: 8087
+      targetPort: 8087
+  selector:
+    app: common-service

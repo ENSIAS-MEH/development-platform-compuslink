@@ -1,0 +1,777 @@
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import api from "../services/api";
+
+interface Profile {
+  id: string;
+  email: string;
+  role: string;
+  fullName: string | null;
+  university: string | null;
+  city: string | null;
+  phoneNumber: string | null;
+  bio: string | null;
+  profilePicUrl: string | null;
+  cvUrl: string | null;
+  createdAt: string;
+}
+
+interface Item {
+  id: string;
+  title: string;
+  price: number;
+  city: string;
+  status: string;
+  coverImageUrl: string | null;
+  createdAt: string;
+}
+
+interface ColocPost {
+  id: string;
+  title: string;
+  city: string;
+  rentPerPerson: number;
+  status: string;
+  coverUrl: string | null;
+  createdAt: string;
+}
+
+interface SavedItem {
+  id: string;
+  targetType: string;
+  targetId: string;
+  title: string | null;
+  price: number | null;
+  city: string | null;
+  category: string | null;
+  status: string | null;
+  coverImageUrl: string | null;
+}
+
+interface MyEvent {
+  id: string;
+  title: string;
+  city: string;
+  eventDate: string;
+  category: string;
+  participantCount: number;
+  coverUrl: string | null;
+  cancelled: boolean;
+}
+
+interface UserCv {
+  id: string;
+  fileUrl: string;
+  originalName: string;
+  uploadedAt: string;
+  default: boolean;
+}
+
+interface MyApplication {
+  id: string;
+  offerId: string;
+  offerTitle: string;
+  offerCompany: string;
+  offerType: string;
+  status: string;
+  appliedAt: string;
+}
+
+interface MyOffer {
+  id: string;
+  type: string;
+  title: string;
+  company: string;
+  city: string;
+  status: string;
+  domain: string;
+  createdAt: string;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  OPEN: "bg-blue-100 text-blue-700",
+  SOLD: "bg-red-100 text-red-700",
+  CLOSED: "bg-gray-100 text-gray-600",
+  FULL: "bg-orange-100 text-orange-700",
+};
+
+export default function ProfilePage() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [items, setItems] = useState<Item[]>([]);
+  const [colocPosts, setColocPosts] = useState<ColocPost[]>([]);
+  const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
+  const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
+  const [myParticipations, setMyParticipations] = useState<MyEvent[]>([]);
+  const [cvs, setCvs] = useState<UserCv[]>([]);
+  const [myApplications, setMyApplications] = useState<MyApplication[]>([]);
+  const [myOffers, setMyOffers] = useState<MyOffer[]>([]);
+  const [eventsSubTab, setEventsSubTab] = useState<"organized" | "participating">("organized");
+  const [activeTab, setActiveTab] = useState<"marketplace" | "colocation" | "offers" | "favoris" | "events" | "applications">("marketplace");
+  const [loading, setLoading] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
+  const [form, setForm] = useState({ fullName: "", university: "", city: "", phoneNumber: "", bio: "" });
+  const [saving, setSaving] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const picInputRef = useRef<HTMLInputElement>(null);
+  const cvInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (file: File, endpoint: string, field: "profilePicUrl" | "cvUrl") => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await api.post(endpoint, formData);
+    setProfile((p) => p ? { ...p, [field]: data[field] } : p);
+  };
+
+  const handleCvUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await api.post("/me/profile/cv", formData);
+    setCvs((prev) => [data, ...prev]);
+  };
+
+  const deleteCv = async (id: string) => {
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer ce CV ?",
+      onConfirm: async () => {
+        await api.delete(`/me/profile/cvs/${id}`);
+        setCvs((prev) => prev.filter((cv) => cv.id !== id));
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  const setDefaultCv = async (id: string) => {
+    const { data } = await api.patch(`/me/profile/cvs/${id}/default`);
+    setCvs((prev) => prev.map((cv) => ({ ...cv, default: cv.id === data.id })));
+  };
+
+  useEffect(() => {
+    Promise.allSettled([
+      api.get("/me/profile"),
+      api.get("/items/mine"),
+      api.get("/coloc/my-posts"),
+      api.get("/saved"),
+      api.get("/events/my-events"),
+      api.get("/events/my-participations"),
+      api.get("/me/profile/cvs"),
+      api.get("/applications/mine"),
+      api.get("/offers/my-offers"),
+    ]).then(([profileRes, itemsRes, colocRes, savedRes, eventsRes, participationsRes, cvsRes, appsRes, offersRes]) => {
+      if (profileRes.status === "fulfilled") {
+        setProfile(profileRes.value.data);
+        setForm({
+          fullName: profileRes.value.data.fullName || "",
+          university: profileRes.value.data.university || "",
+          city: profileRes.value.data.city || "",
+          phoneNumber: profileRes.value.data.phoneNumber || "",
+          bio: profileRes.value.data.bio || "",
+        });
+      }
+      if (itemsRes.status === "fulfilled") setItems(itemsRes.value.data);
+      if (colocRes.status === "fulfilled") setColocPosts(colocRes.value.data);
+      if (savedRes.status === "fulfilled") setSavedItems(savedRes.value.data);
+      if (eventsRes.status === "fulfilled") setMyEvents(eventsRes.value.data);
+      if (participationsRes.status === "fulfilled") setMyParticipations(participationsRes.value.data);
+      if (cvsRes.status === "fulfilled") setCvs(cvsRes.value.data);
+      if (appsRes.status === "fulfilled") setMyApplications(appsRes.value.data);
+      if (offersRes.status === "fulfilled") setMyOffers(offersRes.value.data);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { data } = await api.patch("/me/profile", form);
+      setProfile(data);
+      setEditOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteItem = async (id: string) => {
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer cette annonce ?",
+      onConfirm: async () => {
+        await api.delete(`/items/${id}`);
+        setItems((prev) => prev.filter((i) => i.id !== id));
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  const deleteColoc = async (id: string) => {
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer cette colocation ?",
+      onConfirm: async () => {
+        await api.delete(`/coloc/${id}`);
+        setColocPosts((prev) => prev.filter((p) => p.id !== id));
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  const deleteEvent = async (id: string) => {
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer cet événement ?",
+      onConfirm: async () => {
+        await api.delete(`/events/${id}`);
+        setMyEvents((prev) => prev.filter((e) => e.id !== id));
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  const deleteOffer = async (id: string) => {
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir supprimer cette offre ?",
+      onConfirm: async () => {
+        await api.delete(`/offers/${id}`);
+        setMyOffers((prev) => prev.filter((o) => o.id !== id));
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  const leaveEvent = async (id: string) => {
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir quitter cet événement ?",
+      onConfirm: async () => {
+        await api.delete(`/events/${id}/leave`);
+        setMyParticipations((prev) => prev.filter((e) => e.id !== id));
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  const deleteSaved = async (targetType: string, targetId: string) => {
+    setConfirmModal({
+      message: "Êtes-vous sûr de vouloir retirer ce favori ?",
+      onConfirm: async () => {
+        await api.delete(`/saved?targetType=${targetType}&targetId=${targetId}`);
+        setSavedItems((prev) => prev.filter((s) => !(s.targetType === targetType && s.targetId === targetId)));
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  if (loading) return <div className="flex justify-center items-center h-64 text-gray-400">Loading...</div>;
+  if (!profile) return null;
+
+  const memberSince = new Date(profile.createdAt).toLocaleDateString("fr-FR", { month: "short", year: "numeric" });
+
+  const tabs = [
+    { key: "marketplace", label: "Mes Annonces Marketplace" },
+    { key: "colocation", label: "Mes Colocations" },
+    { key: "offers", label: "Mes Offres" },
+    { key: "events", label: "Mes Événements" },
+    { key: "applications", label: "Mes Candidatures" },
+    { key: "favoris", label: "Favoris" },
+  ] as const;
+
+  return (
+    <div className="max-w-6xl mx-auto px-8 py-12">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left - Profile Card */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+            {/* Avatar */}
+            <div className="relative w-28 h-28 mx-auto">
+              {profile.profilePicUrl ? (
+                <img src={profile.profilePicUrl} className="w-28 h-28 rounded-full object-cover" alt="" />
+              ) : (
+                <div className="w-28 h-28 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary">
+                  {(profile.fullName || profile.email)[0].toUpperCase()}
+                </div>
+              )}
+              <button
+                onClick={() => picInputRef.current?.click()}
+                className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-md hover:bg-primary-dark transition-colors border-2 border-white"
+              >
+                <span className="material-symbols-outlined text-[16px]">add</span>
+              </button>
+              {profile.profilePicUrl && (
+                <button
+                  onClick={async () => { await api.delete("/me/profile/picture"); setProfile((p) => p ? { ...p, profilePicUrl: null } : p); }}
+                  className="absolute -top-1 -right-1 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition-colors border-2 border-white"
+                >
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              )}
+            </div>
+            <input ref={picInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], "/me/profile/picture", "profilePicUrl")} />
+
+            <h2 className="text-xl font-bold font-[Geist] mt-6">{profile.fullName || profile.email}</h2>
+            <span className="inline-block mt-2 text-xs bg-green-100 text-green-700 font-semibold px-3 py-1 rounded-full">
+              {profile.role}
+            </span>
+
+            <div className="mt-6 space-y-3 text-left border-t border-gray-100 pt-6">
+              {profile.university && (
+                <p className="text-sm text-gray-600 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-gray-400">school</span>
+                  {profile.university}
+                </p>
+              )}
+              {profile.city && (
+                <p className="text-sm text-gray-600 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-gray-400">location_on</span>
+                  {profile.city}
+                </p>
+              )}
+              {profile.phoneNumber && (
+                <p className="text-sm text-gray-600 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-gray-400">phone</span>
+                  {profile.phoneNumber}
+                </p>
+              )}
+              <p className="text-sm text-gray-600 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px] text-gray-400">calendar_today</span>
+                Membre depuis {memberSince}
+              </p>
+            </div>
+
+            {profile.bio && (
+              <p className="mt-4 text-sm text-gray-500 text-left border-t border-gray-100 pt-4">{profile.bio}</p>
+            )}
+
+            <button
+              onClick={() => setEditOpen(true)}
+              className="w-full mt-6 bg-primary text-white py-3 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
+            >
+              Modifier le Profil
+            </button>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+              <p className="text-2xl font-bold text-primary">{items.length}</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mt-1">Annonces</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+              <p className="text-2xl font-bold text-primary">{colocPosts.length}</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mt-1">Colocations</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* CV */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold font-[Geist]">Curriculum Vitae</h3>
+              <span className="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-full">Privé</span>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Téléchargez vos CVs pour postuler plus rapidement aux offres de stage et d'emploi.</p>
+
+            <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors mb-4" onClick={() => cvInputRef.current?.click()}>
+              <span className="material-symbols-outlined text-gray-400 text-3xl">cloud_upload</span>
+              <p className="text-sm font-medium mt-2">Cliquez pour ajouter un CV</p>
+              <p className="text-xs text-gray-400 mt-1">PDF, DOCX jusqu'à 10MB</p>
+            </div>
+            <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => { if (e.target.files?.[0]) { handleCvUpload(e.target.files[0]); e.target.value = ""; } }} />
+
+            {cvs.length > 0 && (
+              <div className="space-y-3">
+                {cvs.map((cv) => (
+                  <div key={cv.id} className={`flex items-center justify-between rounded-xl p-4 ${cv.default ? "bg-primary/5 border border-primary/20" : "bg-gray-50"}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{cv.originalName || "CV"}</p>
+                          {cv.default && <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">Par défaut</span>}
+                        </div>
+                        <a href={cv.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                          Télécharger
+                        </a>
+                        <span className="text-xs text-gray-400 ml-2">{new Date(cv.uploadedAt).toLocaleDateString("fr-FR")}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {!cv.default && (
+                        <button onClick={() => setDefaultCv(cv.id)} className="w-7 h-7 bg-primary/10 text-primary rounded-full flex items-center justify-center hover:bg-primary/20" title="Définir par défaut">
+                          <span className="material-symbols-outlined text-[14px]">star</span>
+                        </button>
+                      )}
+                      <button onClick={() => deleteCv(cv.id)} className="w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600">
+                        <span className="material-symbols-outlined text-[14px]">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div>
+            <div className="flex gap-6 border-b border-gray-100 mb-6">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`pb-3 text-sm font-medium transition-colors whitespace-nowrap ${
+                    activeTab === tab.key ? "text-primary border-b-2 border-primary" : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Marketplace Items */}
+            {activeTab === "marketplace" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {items.length === 0 && (
+                  <div className="col-span-2 text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">shopping_bag</span>
+                    <p className="text-gray-500 mt-3">Vous n'avez aucune annonce</p>
+                    <Link to="/marketplace/create" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Créer ma première annonce →
+                    </Link>
+                  </div>
+                )}
+                {items.map((item) => (
+                  <div key={item.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <button onClick={() => deleteItem(item.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
+                    <Link to={`/marketplace/${item.id}`}>
+                    <div className="relative h-40 bg-gray-100">
+                      {item.coverImageUrl ? (
+                        <img src={item.coverImageUrl} className="w-full h-full object-cover" alt={item.title} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <span className="material-symbols-outlined text-4xl">image</span>
+                        </div>
+                      )}
+                      <span className="absolute top-3 right-3 bg-white/90 text-xs font-semibold px-2 py-1 rounded-md">{item.price} MAD</span>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-sm truncate">{item.title}</h4>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ml-2 shrink-0 ${STATUS_COLORS[item.status] || "bg-gray-100 text-gray-600"}`}>{item.status}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">{new Date(item.createdAt).toLocaleDateString("fr-FR")}</p>
+                    </div>
+                    </Link>
+                  </div>
+                ))}
+                <Link to="/marketplace/create" className={`border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px] ${items.length === 0 ? "hidden" : ""}`}>
+                  <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
+                  <p className="text-sm font-medium text-gray-600 mt-2">Créer une annonce</p>
+                </Link>
+              </div>
+            )}
+
+            {/* Colocation Posts */}
+            {activeTab === "colocation" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {colocPosts.length === 0 && (
+                  <div className="col-span-2 text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">home</span>
+                    <p className="text-gray-500 mt-3">Vous n'avez aucune colocation</p>
+                    <Link to="/colocation/create" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Publier une colocation →
+                    </Link>
+                  </div>
+                )}
+                {colocPosts.map((post) => (
+                  <div key={post.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <button onClick={() => deleteColoc(post.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
+                    <Link to={`/colocation/${post.id}`}>
+                    <div className="relative h-40 bg-gray-100">
+                      {post.coverUrl ? (
+                        <img src={post.coverUrl} className="w-full h-full object-cover" alt={post.title} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <span className="material-symbols-outlined text-4xl">home</span>
+                        </div>
+                      )}
+                      <span className="absolute top-3 right-3 bg-white/90 text-xs font-semibold px-2 py-1 rounded-md">{post.rentPerPerson} MAD/mois</span>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-sm truncate">{post.title}</h4>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ml-2 shrink-0 ${STATUS_COLORS[post.status] || "bg-gray-100 text-gray-600"}`}>{post.status}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{post.city}</p>
+                      <p className="text-xs text-gray-400 mt-2">{new Date(post.createdAt).toLocaleDateString("fr-FR")}</p>
+                    </div>
+                    </Link>
+                  </div>
+                ))}
+                <Link to="/colocation/create" className={`border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px] ${colocPosts.length === 0 ? "hidden" : ""}`}>
+                  <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
+                  <p className="text-sm font-medium text-gray-600 mt-2">Créer une colocation</p>
+                </Link>
+              </div>
+            )}
+
+            {/* Offers */}
+            {activeTab === "offers" && (
+              <div className="space-y-4">
+                {myOffers.length === 0 ? (
+                  <div className="text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">work</span>
+                    <p className="text-gray-500 mt-3">Vous n'avez publié aucune offre</p>
+                    <Link to="/offers/create" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Créer une offre →
+                    </Link>
+                  </div>
+                ) : myOffers.map((offer) => (
+                  <div key={offer.id} className="relative bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4">
+                    <button onClick={() => deleteOffer(offer.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
+                    <Link to={`/offers/${offer.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
+                        {offer.company?.charAt(0) || "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm truncate">{offer.title}</h4>
+                        <p className="text-xs text-gray-500">{offer.company} · {offer.type}{offer.city ? ` · ${offer.city}` : ""}</p>
+                        <p className="text-xs text-gray-400 mt-1">{new Date(offer.createdAt).toLocaleDateString("fr-FR")}</p>
+                      </div>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${
+                        offer.status === "OPEN" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                      }`}>{offer.status}</span>
+                    </Link>
+                  </div>
+                ))}
+                {myOffers.length > 0 && (
+                  <Link to="/offers/create" className="block border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-primary/50 transition-colors">
+                    <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
+                    <p className="text-sm font-medium text-gray-600 mt-2">Créer une offre</p>
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {/* Events */}
+            {activeTab === "events" && (
+              <div>
+                {/* Sub-tabs */}
+                <div className="flex gap-4 mb-5">
+                  {[{ key: "organized", label: "Mes événements" }, { key: "participating", label: "Je participe" }].map((t) => (
+                    <button key={t.key} onClick={() => setEventsSubTab(t.key as any)}
+                      className={`text-sm font-medium pb-2 border-b-2 transition-colors ${eventsSubTab === t.key ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900"}`}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(eventsSubTab === "organized" ? myEvents : myParticipations).length === 0 && (
+                    <div className="col-span-2 text-center py-12">
+                      <span className="material-symbols-outlined text-gray-300 text-5xl">event</span>
+                      <p className="text-gray-500 mt-3">
+                        {eventsSubTab === "organized" ? "Vous n'avez créé aucun événement" : "Vous ne participez à aucun événement"}
+                      </p>
+                      <Link to={eventsSubTab === "organized" ? "/events/create" : "/events"} className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                        {eventsSubTab === "organized" ? "Créer un événement →" : "Découvrir les événements →"}
+                      </Link>
+                    </div>
+                  )}
+                  {(eventsSubTab === "organized" ? myEvents : myParticipations).map((event) => (
+                    <div key={event.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                      {eventsSubTab === "organized" && (
+                        <button onClick={() => deleteEvent(event.id)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                          <span className="material-symbols-outlined text-[14px]">delete</span>
+                        </button>
+                      )}
+                      {eventsSubTab === "participating" && (
+                        <button onClick={() => leaveEvent(event.id)} className="absolute top-2 right-2 z-10 bg-orange-500 text-white px-2.5 py-1 rounded-full flex items-center gap-1 hover:bg-orange-600 shadow text-xs font-medium">
+                          <span className="material-symbols-outlined text-[14px]">logout</span>
+                          Quitter
+                        </button>
+                      )}
+                      <Link to={`/events/${event.id}`}>
+                        <div className="relative h-40 bg-gray-100">
+                          {event.coverUrl ? (
+                            <img src={event.coverUrl} className="w-full h-full object-cover" alt={event.title} />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
+                              <span className="material-symbols-outlined text-primary text-4xl">event</span>
+                            </div>
+                          )}
+                          <span className="absolute top-3 left-3 bg-white/90 text-xs font-semibold px-2 py-1 rounded-md">{event.category}</span>
+                        </div>
+                        <div className="p-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-sm truncate">{event.title}</h4>
+                            {event.cancelled && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full ml-2 shrink-0">Annulé</span>}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{event.city} · {new Date(event.eventDate).toLocaleDateString("fr-FR")}</p>
+                          <p className="text-xs text-gray-400 mt-1">{event.participantCount} participant{event.participantCount !== 1 ? "s" : ""}</p>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                  {eventsSubTab === "organized" && myEvents.length > 0 && (
+                    <Link to="/events/create" className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center hover:border-primary/50 transition-colors min-h-[200px]">
+                      <span className="material-symbols-outlined text-gray-400 text-3xl">add</span>
+                      <p className="text-sm font-medium text-gray-600 mt-2">Créer un événement</p>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Applications */}
+            {activeTab === "applications" && (
+              <div className="space-y-4">
+                {myApplications.length === 0 ? (
+                  <div className="text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">work</span>
+                    <p className="text-gray-500 mt-3">Vous n'avez postulé à aucune offre</p>
+                    <Link to="/offers" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Découvrir les offres →
+                    </Link>
+                  </div>
+                ) : myApplications.map((app) => (
+                  <Link key={app.id} to={`/offers/${app.offerId}`} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4 block">
+                    <div className="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
+                      {app.offerCompany?.charAt(0) || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm truncate">{app.offerTitle}</h4>
+                      <p className="text-xs text-gray-500">{app.offerCompany} · {app.offerType}</p>
+                      <p className="text-xs text-gray-400 mt-1">Postulé le {new Date(app.appliedAt).toLocaleDateString("fr-FR")}</p>
+                    </div>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${
+                      app.status === "ACCEPTED" ? "bg-green-100 text-green-700" :
+                      app.status === "REJECTED" ? "bg-red-100 text-red-700" :
+                      app.status === "SEEN" ? "bg-blue-100 text-blue-700" :
+                      "bg-yellow-100 text-yellow-700"
+                    }`}>{app.status}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Favoris */}
+            {activeTab === "favoris" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {savedItems.length === 0 ? (
+                  <div className="col-span-2 text-center py-12">
+                    <span className="material-symbols-outlined text-gray-300 text-5xl">bookmark</span>
+                    <p className="text-gray-500 mt-3">Aucun favori pour l'instant</p>
+                    <Link to="/marketplace" className="inline-block mt-4 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                      Explorer le marketplace →
+                    </Link>
+                  </div>
+                ) : savedItems.map((saved) => (
+                  <div key={saved.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <button onClick={() => deleteSaved(saved.targetType, saved.targetId)} className="absolute top-2 right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
+                    <Link to={
+                      saved.targetType === "ITEM" ? `/marketplace/${saved.targetId}` :
+                      saved.targetType === "COLOC" ? `/colocation/${saved.targetId}` :
+                      saved.targetType === "OFFER" ? `/offers/${saved.targetId}` :
+                      `/events/${saved.targetId}`
+                    }>
+                      <div className="relative h-40 bg-gray-100">
+                        {saved.coverImageUrl ? (
+                          <img src={saved.coverImageUrl} className="w-full h-full object-cover" alt={saved.title || ""} />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <span className="material-symbols-outlined text-4xl">
+                              {saved.targetType === "ITEM" ? "shopping_bag" :
+                               saved.targetType === "COLOC" ? "home" :
+                               saved.targetType === "OFFER" ? "work" : "event"}
+                            </span>
+                          </div>
+                        )}
+                        {saved.price != null && (
+                          <span className="absolute top-3 right-3 bg-white/90 text-xs font-semibold px-2 py-1 rounded-md">
+                            {saved.price} {saved.targetType === "COLOC" ? "MAD/mois" : "MAD"}
+                          </span>
+                        )}
+                        <span className="absolute top-3 left-3 bg-white/90 text-xs font-semibold px-2 py-1 rounded-md">
+                          {saved.targetType}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-sm truncate">{saved.title || saved.targetId}</h4>
+                          {saved.status && (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ml-2 shrink-0 ${STATUS_COLORS[saved.status] || "bg-gray-100 text-gray-600"}`}>{saved.status}</span>
+                          )}
+                        </div>
+                        {saved.city && <p className="text-xs text-gray-500 mt-1">{saved.city}</p>}
+                        {saved.category && <p className="text-xs text-gray-400 mt-1">{saved.category}</p>}
+                      </div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Modal */}
+      {editOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-md space-y-4">
+            <h3 className="text-lg font-bold font-[Geist]">Modifier le Profil</h3>
+            {[
+              { label: "Nom complet", key: "fullName" },
+              { label: "Université", key: "university" },
+              { label: "Ville", key: "city" },
+              { label: "Téléphone", key: "phoneNumber" },
+            ].map(({ label, key }) => (
+              <div key={key}>
+                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</label>
+                <input
+                  className="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  value={form[key as keyof typeof form]}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                />
+              </div>
+            ))}
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Bio</label>
+              <textarea
+                rows={3}
+                className="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                value={form.bio}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setEditOpen(false)} className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">Annuler</button>
+              <button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50">
+                {saving ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center space-y-4">
+            <div className="w-14 h-14 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+              <span className="material-symbols-outlined text-red-500 text-2xl">warning</span>
+            </div>
+            <h3 className="text-lg font-bold font-[Geist]">Confirmation</h3>
+            <p className="text-sm text-gray-600">{confirmModal.message}</p>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setConfirmModal(null)} className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">Annuler</button>
+              <button onClick={confirmModal.onConfirm} className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

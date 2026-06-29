@@ -1,0 +1,71 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: compuslink-ingress
+  namespace: compuslink
+  # Using k3s's built-in Traefik ingress controller (no extra install).
+  # Traefik has no request-body-size limit by default, so the 10MB+ uploads
+  # (CVs, item/event/coloc photos) work out of the box.
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          # --- API + auth + static uploads go to the API gateway ---
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /login/oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /coloc-uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /event-uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          - path: /user-uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
+          # --- Everything else is the React SPA ---
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
